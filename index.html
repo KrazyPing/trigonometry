@@ -8,7 +8,7 @@
 <style>
 *{box-sizing:border-box}
 body{margin:0;min-height:100vh;font-family:Arial,Helvetica,sans-serif;background:linear-gradient(135deg,#111827,#1e293b);color:#fff;display:flex;justify-content:center;align-items:center}
-.container{width:min(950px,94vw);background:#182235;border-radius:22px;padding:30px;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+.container{width:min(950px,94vw);background:#182235;border-radius:22px;padding:30px;box-shadow:0 20px 60px rgba(0,0,0,.35);position:relative}
 h1{text-align:center;margin:0;font-size:38px}.subtitle{text-align:center;color:#aab6ca;margin:8px 0 30px}
 .setup-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}.setting{background:#202d43;padding:18px;border-radius:14px}.setting label{display:block;margin-bottom:9px;font-weight:bold}
 select,input{width:100%;padding:12px;border:none;border-radius:9px;background:#0f172a;color:#fff;font-size:17px;outline:none}
@@ -62,8 +62,47 @@ button{border:none;cursor:pointer;color:#fff;font-size:17px;border-radius:10px;p
 .global-lb-table th,.global-lb-table td{padding:10px;text-align:left;border-bottom:1px solid #334155}
 .global-lb-table th{color:#94a3b8}
 
-.admin-bar{display:flex;gap:10px;margin-top:15px;align-items:center}
-.admin-btn{background:#475569;font-size:14px;padding:8px 14px}
+/* Hidden Secret Admin Circle */
+.secret-admin-circle {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background-color: #182235; /* Matches container background */
+  cursor: pointer;
+  z-index: 10;
+}
+.secret-admin-circle:hover {
+  background-color: #1d2a42; /* Very faint hover state */
+}
+
+/* Admin Modal Popup */
+.admin-modal {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; width: 100vw; height: 100vh;
+  background: rgba(0,0,0,0.6);
+  justify-content: center;
+  align-items: center;
+  z-index: 100;
+}
+.admin-modal.show { display: flex; }
+.admin-box {
+  background: #202d43;
+  padding: 25px;
+  border-radius: 16px;
+  width: min(340px, 90vw);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  text-align: center;
+}
+.admin-box h3 { margin-top: 0; }
+.admin-box input { margin-bottom: 15px; }
+.admin-actions { display: flex; gap: 10px; }
+.admin-actions button { flex: 1; }
+.admin-submit-btn { background: #2563eb; }
+.admin-cancel-btn { background: #475569; }
 .remove-btn{background:#dc2626;font-size:12px;padding:5px 10px;border-radius:6px;cursor:pointer}
 
 @media(max-width:700px){.setup-grid{grid-template-columns:1fr}.top-bar{grid-template-columns:repeat(2,1fr)}.question{font-size:42px}.result-grid{grid-template-columns:1fr}}
@@ -71,6 +110,9 @@ button{border:none;cursor:pointer;color:#fff;font-size:17px;border-radius:10px;p
 </head>
 <body>
 <div class="container">
+
+<!-- Hidden Secret Admin Circle -->
+<div class="secret-admin-circle" onclick="openAdminModal()"></div>
 
 <div id="setup">
 <img src="/logo.png" class="game-logo">
@@ -123,11 +165,6 @@ button{border:none;cursor:pointer;color:#fff;font-size:17px;border-radius:10px;p
       <tr><td colspan="3">Loading leaderboard...</td></tr>
     </tbody>
   </table>
-
-  <div class="admin-bar">
-    <input id="adminKeyInput" type="password" placeholder="Admin Key" style="width:180px;padding:8px;font-size:14px;display:none;">
-    <button id="adminLoginBtn" class="admin-btn" onclick="toggleAdminLogin()">Admin Mode</button>
-  </div>
 </div>
 
 <div class="setup-grid">
@@ -201,10 +238,22 @@ button{border:none;cursor:pointer;color:#fff;font-size:17px;border-radius:10px;p
 </div>
 </div>
 
+<!-- Admin Key Modal -->
+<div id="adminModal" class="admin-modal">
+  <div class="admin-box">
+    <h3>🔒 Admin Mode</h3>
+    <input id="modalAdminKey" type="password" placeholder="Enter Admin Password">
+    <div class="admin-actions">
+      <button class="admin-submit-btn" onclick="submitAdminKey()">SUBMIT</button>
+      <button class="admin-cancel-btn" onclick="closeAdminModal()">CANCEL</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const QUESTIONS = {
 sin:{"0":["0","+"],"π/6":["1/2","+"],"π/4":["√2/2","+"],"π/3":["√3/2","+"],"π/2":["1","+"],"2π/3":["√3/2","+"],"3π/4":["√2/2","+"],"5π/6":["1/2","+"],"π":["0","+"],"7π/6":["1/2","-"],"5π/4":["√2/2","-"],"4π/3":["√3/2","-"],"3π/2":["1","-"],"5π/3":["√3/2","-"],"7π/4":["√2/2","-"],"11π/6":["1/2","-"],"2π":["0","+"]},
-cos:{"0":["1","+"],"π/6":["√3/2","+"],"π/4":["√2/2","+"],"π/3":["1/2","+"],"π/2":["0","+"],"2π/3":["1/2","-"],"3π/4":["√2/2","-"],"5π/6":["√3/2","-"],"π":["1","-"],"7π/6":["√3/2","-"],"5π/4":["√2/2","-"],"4π/3":["1/2","-"],"3π/2":["0","+"],"5π/3":["1/2","+"],"7π/4":["√2/2","+"],"11π/6":["√3/2","+"],"2π":["1","+"]},
+cos:{"0":["1","+"],"π/6":["√3/2","+"],"π/4":["√2/2","+"],"π/3":["1/2","+"],"π/2":["0","+"],"2π/3":["1/2","-"],"3π/4":["√2/2","-"],"5π/6":["√3/2","-"],"π":["1","-"],"7π/6":["√3/2","-"],"5π/4":["√2/2","-"],"4π/3":["1/2","-"],"3π/2":["0","+"],"5π/3":["1/2","+"],"7π/4":["√2/2","+"],"11π/6":["√3/2","+"],"2π":["0","+"]},
 tan:{"0":["0","+"],"π/6":["√3/3","+"],"π/4":["1","+"],"π/3":["√3","+"],"π":["0","+"],"2π/3":["√3","-"],"3π/4":["1","-"],"5π/6":["√3/3","-"],"7π/6":["√3/3","+"],"5π/4":["1","+"],"4π/3":["√3","+"],"3π/2":["undefined","+"],"5π/3":["√3","-"],"7π/4":["1","-"],"11π/6":["√3/3","-"],"2π":["0","+"]},
 sec:{"0":["1","+"],"π/3":["2","+"],"2π/3":["2","-"],"π":["1","-"],"4π/3":["2","-"],"5π/3":["2","+"],"2π":["1","+"],"π/2":["undefined","+"],"3π/2":["undefined","+"]},
 csc:{"π/6":["2","+"],"π/2":["1","+"],"5π/6":["2","+"],"7π/6":["2","-"],"3π/2":["1","-"],"11π/6":["2","-"],"0":["undefined","+"],"π":["undefined","+"]},
@@ -324,48 +373,51 @@ function fetchGlobalLeaderboard() {
     .catch(() => {});
 }
 
-function toggleAdminLogin() {
-  const input = document.getElementById("adminKeyInput");
+/* Secret Admin System Functions */
+function openAdminModal() {
   if (adminKey) {
-    adminKey = "";
-    localStorage.removeItem("trigAdminKey");
-    input.style.display = "none";
-    document.getElementById("adminLoginBtn").textContent = "Admin Mode";
-    fetchGlobalLeaderboard();
+    if (confirm("Logout from Admin Mode?")) {
+      adminKey = "";
+      localStorage.removeItem("trigAdminKey");
+      fetchGlobalLeaderboard();
+    }
     return;
   }
+  document.getElementById("modalAdminKey").value = "";
+  document.getElementById("adminModal").classList.add("show");
+  document.getElementById("modalAdminKey").focus();
+}
 
-  if (input.style.display === "none") {
-    input.style.display = "inline-block";
-    input.focus();
-  } else {
-    const key = input.value.trim();
-    if (!key) return;
+function closeAdminModal() {
+  document.getElementById("adminModal").classList.remove("show");
+}
 
-    fetch("/api/admin/login", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ key })
-    })
-    .then(r => r.json())
-    .then(data => {
-      if (data.success) {
-        adminKey = key;
-        localStorage.setItem("trigAdminKey", adminKey);
-        input.value = "";
-        input.style.display = "none";
-        document.getElementById("adminLoginBtn").textContent = "Logout Admin";
-        fetchGlobalLeaderboard();
-      } else {
-        alert("Invalid admin key");
-      }
-    });
-  }
+function submitAdminKey() {
+  const key = document.getElementById("modalAdminKey").value.trim();
+  if (!key) return;
+
+  fetch("/api/admin/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ key })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (data.success) {
+      adminKey = key;
+      localStorage.setItem("trigAdminKey", adminKey);
+      closeAdminModal();
+      fetchGlobalLeaderboard();
+      alert("Admin Mode Activated");
+    } else {
+      alert("Invalid Admin Key");
+    }
+  });
 }
 
 function removePlayer(name) {
   if (!adminKey) return;
-  if (!confirm(`Are you sure you want to remove ${name} from the global leaderboard?`)) return;
+  if (!confirm(`Are you sure u want to remove ${name} from global leaderboard?`)) return;
 
   fetch(`/api/admin/leaderboard/${encodeURIComponent(name)}`, {
     method: "DELETE",
@@ -759,12 +811,11 @@ if(appMode === "multi") {
 document.addEventListener("keydown",e=>{
 if(!gameActive)return;
 if(e.key==="Escape")stopGame();
-});
-
-// Restore active admin session if key is stored
-if (adminKey) {
-  document.getElementById("adminLoginBtn").textContent = "Logout Admin";
+if(e.key==="Enter") {
+  const modal = document.getElementById("adminModal");
+  if(modal.classList.contains("show")) submitAdminKey();
 }
+});
 
 // Load leaderboard on initial boot
 connectMultiplayer();
