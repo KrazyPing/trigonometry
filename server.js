@@ -50,7 +50,9 @@ function getTopLeaderboard(limit = 20) {
 
 const app = express();
 app.use(express.json());
-app.use(express.static(path.join(__dirname, "public")));
+
+// Serve static files from root directory where index.html is located
+app.use(express.static(__dirname));
 
 // Leaderboard API endpoint
 app.get("/api/leaderboard", (_req, res) => {
@@ -68,7 +70,10 @@ app.post("/api/record-questions", (req, res) => {
   res.json({ success: true });
 });
 
-app.get("*", (_req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
+// Compatible wild-card route for Express 5+
+app.get("(.*)", (_req, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
+});
 
 const httpServer = http.createServer(app);
 const io = new Server(httpServer, { cors: { origin: "*" } });
@@ -145,7 +150,6 @@ function startQuestion(lobby){
 function expireQuestion(lobby,index){
   if(!lobby.gameStarted || !lobby.question || lobby.question.questionIndex!==index) return;
   
-  // Count as question answered for every player in lobby
   for (const p of lobby.players.values()) {
     recordAnsweredQuestions(p.name, 1);
   }
@@ -161,7 +165,6 @@ function processAnswer(lobby,p,msg){
   if(lobby.question.deadline && Date.now()>lobby.question.deadline) return;
   lobby.question.answers.add(p.id);
   
-  // Increment site-wide answered questions count for this player
   const updatedGlobal = recordAnsweredQuestions(p.name, 1);
   io.emit("globalLeaderboardUpdate", updatedGlobal);
 
@@ -207,7 +210,6 @@ function disconnectPlayer(socket){
 }
 
 io.on("connection",socket=>{
-  // Send site-wide leaderboard upon connect
   socket.emit("globalLeaderboardUpdate", getTopLeaderboard());
 
   socket.on("createLobby",({name,settings}={})=>{
