@@ -240,27 +240,85 @@ select:focus, input:focus {
 .mp-panel.show, .global-lb-panel.show, .answers-panel.show { display: block; }
 .mp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .mp-actions { display: flex; gap: 10px; margin-top: 12px; }
-.mp-actions button { flex: 1; padding: 12px; border-radius: 8px; border: none; font-weight: bold; color: #fff; cursor: pointer; }
+.mp-actions button { flex: 1; padding: 14px; border-radius: 10px; border: none; font-weight: 800; font-size: 15px; color: #fff; cursor: pointer; transition: transform 0.15s; }
+.mp-actions button:hover { transform: translateY(-1px); }
 .mp-create { background: var(--accent-emerald); }
 .mp-join { background: var(--accent-indigo); }
 
+/* Revamped Multiplayer Lobby UI */
 .mp-lobby {
   display: none;
-  margin-top: 16px;
+  margin-top: 20px;
   background: var(--bg-input);
-  padding: 18px;
-  border-radius: 12px;
+  padding: 24px;
+  border-radius: 16px;
   border: 1px solid var(--border-color);
+  text-align: center;
 }
 .mp-lobby.show { display: block; }
 .mp-code {
-  font-size: 36px;
-  font-weight: 800;
-  letter-spacing: 6px;
+  font-size: 42px;
+  font-weight: 900;
+  letter-spacing: 10px;
   text-align: center;
   color: #a5b4fc;
-  margin: 10px 0;
+  margin: 12px 0 20px;
+  background: rgba(15, 23, 42, 0.6);
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px dashed var(--border-color);
 }
+.mp-status {
+  color: var(--text-muted);
+  font-size: 15px;
+  font-weight: 600;
+}
+.mp-players {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 10px;
+  margin: 20px 0;
+}
+.mp-player {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #1e293b;
+  padding: 12px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--border-color);
+  font-weight: 700;
+  font-size: 15px;
+}
+.mp-start {
+  width: 100%;
+  background: linear-gradient(135deg, #10b981, #059669);
+  color: #fff;
+  border: none;
+  padding: 16px;
+  font-size: 18px;
+  font-weight: 800;
+  border-radius: 12px;
+  cursor: pointer;
+  margin-top: 10px;
+  box-shadow: 0 10px 20px -5px rgba(16, 185, 129, 0.4);
+  transition: transform 0.15s;
+}
+.mp-start:hover { transform: translateY(-2px); }
+.mp-leave {
+  width: 100%;
+  background: #ef4444;
+  color: #fff;
+  border: none;
+  padding: 14px;
+  font-size: 15px;
+  font-weight: 800;
+  border-radius: 12px;
+  cursor: pointer;
+  margin-top: 10px;
+  transition: transform 0.15s;
+}
+.mp-leave:hover { transform: translateY(-1px); }
 
 /* Tables & Cheat Sheet Styling */
 .global-lb-table, .answers-table {
@@ -599,56 +657,60 @@ select:focus, input:focus {
         </table>
       </div>
 
-      <div class="setup-grid">
-        <div class="setting" style="grid-column: 1 / -1;">
-          <label>Your Player Name (for Global Leaderboard)</label>
-          <input id="soloName" maxlength="16" placeholder="Enter your name">
-        </div>
-        <div class="setting">
-          <label>Seconds Per Question</label>
-          <input id="timeInput" type="number" min="0.5" max="60" step="0.5" value="2">
-        </div>
-        <div class="setting">
-          <label>Difficulty</label>
-          <select id="difficulty">
-            <option value="easy">Easy</option>
-            <option value="medium">Medium</option>
-            <option value="hard">Hard</option>
-          </select>
-        </div>
-        <div class="setting">
-          <label>Game Mode</label>
-          <select id="gameMode">
-            <option value="classic">Classic — 20 Questions</option>
-            <option value="ten">10 Questions</option>
-            <option value="fifty">50 Questions</option>
-            <option value="endless">Endless</option>
-            <option value="practice">Practice — No Timer</option>
-          </select>
-        </div>
-        <div class="setting">
-          <label>Negative Answers</label>
-          <select id="negativeMode">
-            <option value="both">Positive & Negative</option>
-            <option value="positive">Positive Only</option>
-            <option value="negative">Negative Only</option>
-          </select>
-        </div>
+      <!-- Settings & Controls Container (Hidden on Leaderboard & Answers) -->
+      <div id="gameControlsContainer">
+        <div class="setup-grid">
+          <div class="setting" style="grid-column: 1 / -1;">
+            <label>Your Player Name (for Global Leaderboard)</label>
+            <input id="soloName" maxlength="16" placeholder="Enter your name">
+          </div>
+          <div class="setting">
+            <label>Seconds Per Question</label>
+            <input id="timeInput" type="number" min="0.5" max="60" step="0.5" value="2">
+          </div>
+          <div class="setting">
+            <label>Difficulty</label>
+            <select id="difficulty">
+              <option value="easy">Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
+            </select>
+          </div>
+          <div class="setting">
+            <label>Game Mode</label>
+            <select id="gameMode">
+              <option value="classic">Classic — 20 Questions</option>
+              <option value="ten">10 Questions</option>
+              <option value="fifty">50 Questions</option>
+              <option value="endless">Endless</option>
+              <option value="practice">Practice — No Timer</option>
+            </select>
+          </div>
+          <div class="setting">
+            <label>Negative Answers</label>
+            <select id="negativeMode">
+              <option value="both">Positive & Negative</option>
+              <option value="positive">Positive Only</option>
+              <option value="negative">Negative Only</option>
+            </select>
+          </div>
 
-        <div class="setting" style="grid-column: 1 / -1;">
-          <label>Choose Trig Functions</label>
-          <div class="trig-buttons">
-            <button class="trig-button selected" data-trig="sin">sin</button>
-            <button class="trig-button selected" data-trig="cos">cos</button>
-            <button class="trig-button selected" data-trig="tan">tan</button>
-            <button class="trig-button selected" data-trig="sec">sec</button>
-            <button class="trig-button selected" data-trig="csc">csc</button>
-            <button class="trig-button selected" data-trig="cot">cot</button>
+          <div class="setting" style="grid-column: 1 / -1;">
+            <label>Choose Trig Functions</label>
+            <div class="trig-buttons">
+              <button class="trig-button selected" data-trig="sin">sin</button>
+              <button class="trig-button selected" data-trig="cos">cos</button>
+              <button class="trig-button selected" data-trig="tan">tan</button>
+              <button class="trig-button selected" data-trig="sec">sec</button>
+              <button class="trig-button selected" data-trig="csc">csc</button>
+              <button class="trig-button selected" data-trig="cot">cot</button>
+            </div>
           </div>
         </div>
+
+        <button class="start-btn" onclick="startGame()">START GAME</button>
       </div>
 
-      <button class="start-btn" onclick="startGame()">START GAME</button>
     </div>
 
     <!-- Gameplay View (Vertically Centered) -->
@@ -799,6 +861,10 @@ function selectMode(mode){
   document.getElementById("mpPanel").classList.toggle("show", mode==="multi");
   document.getElementById("globalLbPanel").classList.toggle("show", mode==="global");
   document.getElementById("answersPanel").classList.toggle("show", mode==="answers");
+
+  // Hides the setup settings grid and start button if on Leaderboard or Answers tabs
+  const showControls = (mode === "solo" || mode === "multi");
+  document.getElementById("gameControlsContainer").style.display = showControls ? "block" : "none";
   
   if(mode==="multi" || mode==="global"){
     connectMultiplayer();
@@ -1062,13 +1128,13 @@ function showMpLobby(){
   document.getElementById("mpLobby").classList.add("show");
   document.getElementById("mpCode").textContent=mpLobbyCode;
   document.getElementById("mpStartBtn").style.display=mpRole==="host"?"block":"none";
-  document.getElementById("mpLobbyStatus").textContent=mpRole==="host"?"You are the host. Share the lobby code.":"Waiting for the host to start...";
+  document.getElementById("mpLobbyStatus").textContent=mpRole==="host"?"You are the host. Share the lobby code with friends!":"Waiting for the host to start the game...";
   setMpError("");
 }
 function renderMpPlayers(){
   const box=document.getElementById("mpPlayers");
   box.innerHTML=mpPlayers.map(p=>
-    `<div class="mp-player"><span>${p.host?"👑 ":""}${escapeMp(p.name)}${p.id===mpPlayerId?" <b>(YOU)</b>":""}</span><span>${p.score||0}</span></div>`
+    `<div class="mp-player"><span>${p.host?"👑 ":""}${escapeMp(p.name)}${p.id===mpPlayerId?" <b>(YOU)</b>":""}</span><span>${p.score||0} pts</span></div>`
   ).join("");
   document.getElementById("mpLobbyStatus").textContent =
     `${mpPlayers.length} player${mpPlayers.length===1?"":"s"} in lobby` +
