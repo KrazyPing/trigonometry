@@ -9,10 +9,10 @@ const Redis = require("ioredis");
 const PORT = Number(process.env.PORT || 3000);
 const ADMIN_KEY = "thierrygotabigbutt";
 
-// Connects to Upstash Redis using the REDIS_URL environment variable on Render
 const redis = process.env.REDIS_URL ? new Redis(process.env.REDIS_URL) : null;
 const DB_FILE = path.join(__dirname, "leaderboard.json");
 let localLeaderboard = {};
+let globalQuestionsCount = 0;
 
 if (!redis && fs.existsSync(DB_FILE)) {
   try { localLeaderboard = JSON.parse(fs.readFileSync(DB_FILE, "utf8")); }
@@ -23,15 +23,24 @@ async function recordAnsweredQuestions(name, count = 1) {
   const cleanName = String(name || "Player").trim().slice(0, 16) || "Player";
   
   if (redis) {
-    // Increment player's score directly in Redis Sorted Set
     await redis.zincrby("trig_leaderboard", count, cleanName);
+    globalQuestionsCount = await redis.incrby("global_questions_count", count);
   } else {
     const key = cleanName.toLowerCase();
     if (!localLeaderboard[key]) localLeaderboard[key] = { name: cleanName, questionsAnswered: 0 };
     localLeaderboard[key].questionsAnswered += count;
+    globalQuestionsCount += count;
     try { fs.writeFileSync(DB_FILE, JSON.stringify(localLeaderboard, null, 2)); } catch(e){}
   }
   return await getTopLeaderboard();
+}
+
+async function getGlobalCount() {
+  if (redis) {
+    const val = await redis.get("global_questions_count");
+    return parseInt(val || "0", 10);
+  }
+  return globalQuestionsCount;
 }
 
 async function removePlayerFromLeaderboard(name) {
@@ -52,7 +61,6 @@ async function removePlayerFromLeaderboard(name) {
 
 async function getTopLeaderboard(limit = 50) {
   if (redis) {
-    // Fetch top scores from Redis sorted set
     const raw = await redis.zrevrange("trig_leaderboard", 0, limit - 1, "WITHSCORES");
     const list = [];
     for (let i = 0; i < raw.length; i += 2) {
@@ -70,12 +78,14 @@ const app = express();
 app.use(express.json());
 app.use(express.static(__dirname));
 
-// Public API endpoint
 app.get("/api/leaderboard", async (_req, res) => {
   res.json(await getTopLeaderboard(50));
 });
 
-// Endpoint to record single/solo player questions
+app.get("/api/global-stats", async (_req, res) => {
+  res.json({ totalQuestions: await getGlobalCount() });
+});
+
 app.post("/api/record-questions", async (req, res) => {
   const { name, count } = req.body;
   if (!name || typeof count !== "number" || count <= 0) {
@@ -83,17 +93,16 @@ app.post("/api/record-questions", async (req, res) => {
   }
   const updated = await recordAnsweredQuestions(name, count);
   io.emit("globalLeaderboardUpdate", updated);
+  io.emit("globalCountUpdate", { totalQuestions: await getGlobalCount() });
   res.json({ success: true });
 });
 
-// ADMIN API: Login check
 app.post("/api/admin/login", (req, res) => {
   const key = String(req.body?.key || "").trim();
   if (key === ADMIN_KEY) return res.json({ success: true });
   res.status(401).json({ error: "Invalid admin key" });
 });
 
-// ADMIN API: Remove player from leaderboard
 app.delete("/api/admin/leaderboard/:username", async (req, res) => {
   const reqKey = String(req.headers["x-admin-key"] || "").trim();
   if (reqKey !== ADMIN_KEY) return res.status(403).json({ error: "Unauthorized" });
@@ -110,7 +119,6 @@ app.delete("/api/admin/leaderboard/:username", async (req, res) => {
   res.status(404).json({ error: "Player not found" });
 });
 
-// Express 5+ fallback route
 app.get("/{*splat}", (_req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
@@ -121,11 +129,11 @@ const lobbies = new Map();
 
 const QUESTIONS = {
   sin:{"0":["0","+"],"π/6":["1/2","+"],"π/4":["√2/2","+"],"π/3":["√3/2","+"],"π/2":["1","+"],"2π/3":["√3/2","+"],"3π/4":["√2/2","+"],"5π/6":["1/2","+"],"π":["0","+"],"7π/6":["1/2","-"],"5π/4":["√2/2","-"],"4π/3":["√3/2","-"],"3π/2":["1","-"],"5π/3":["√3/2","-"],"7π/4":["√2/2","-"],"11π/6":["1/2","-"],"2π":["0","+"]},
-  cos:{"0":["1","+"],"π/6":["√3/2","+"],"π/4":["√2/2","+"],"π/3":["1/2","+"],"π/2":["0","+"],"2π/3":["1/2","-"],"3π/4":["√2/2","-"],"5π/6":["√3/2","-"],"π":["1","-"],"7π/6":["√3/2","-"],"5π/4":["√2/2","-"],"4π/3":["1/2","-"],"3π/2":["0","+"],"5π/3":["1/2","+"],"7π/4":["√2/2","+"],"11π/6":["√3/2","+"],"2π":["0","+"]},
+  cos:{"0":["1","+"],"π/6":["√3/2","+"],"π/4":["√2/2","+"],"π/3":["1/2","+"],"π/2":["0","+"],"2π/3":["1/2","-"],"3π/4":["√2/2","-"],"5π/6":["√3/2","-"],"π":["1","-"],"7π/6":["√3/2","-"],"5π/4":["√2/2","-"],"4π/3":["1/2","-"],"3π/2":["0","+"],"5π/3":["1/2","+"],"7π/4":["√2/2","+"],"11π/6":["√3/2","+"],"2π":["1","+"]},
   tan:{"0":["0","+"],"π/6":["√3/3","+"],"π/4":["1","+"],"π/3":["√3","+"],"π":["0","+"],"2π/3":["√3","-"],"3π/4":["1","-"],"5π/6":["√3/3","-"],"7π/6":["√3/3","+"],"5π/4":["1","+"],"4π/3":["√3","+"],"3π/2":["undefined","+"],"5π/3":["√3","-"],"7π/4":["1","-"],"11π/6":["√3/3","-"],"2π":["0","+"]},
   sec:{"0":["1","+"],"π/3":["2","+"],"2π/3":["2","-"],"π":["1","-"],"4π/3":["2","-"],"5π/3":["2","+"],"2π":["1","+"],"π/2":["undefined","+"],"3π/2":["undefined","+"]},
   csc:{"π/6":["2","+"],"π/2":["1","+"],"5π/6":["2","+"],"7π/6":["2","-"],"3π/2":["1","-"],"11π/6":["2","-"],"0":["undefined","+"],"π":["undefined","+"]},
-  cot:{"π/6":["√3","+"],"π/4":["1","+"],"π/3":["√3/3","+"],"2π/3":["√3/3","-"],"3π/4":["1","-"],"5π/6":["√3","-"],"7π/6":["√3","+"],"5π/4":["1","+"],"4π/3":["√3/3","+"],"7π/4":["1","-"],"11π/6":["√3","-"],"0":["undefined","+"],"π":["undefined","+"],"2π":["undefined","+"]}
+  cot:{"π/6":["√3","+"],"π/4":["1","+"],"π/3":["√3/3","+"],"2π/3":["√3/3","-"],"3π/4":["1","-"],"5π/6":["√3","-"],"7π/6":["√3","+"],"5π/4":["1","+"],"4π/3":["√3/3","+"],"7π/4":["1","-"],"11π/6":["√3","-"],"0":["undefined","+"],"π":["undefined","+"]}
 };
 const ANGLES = {
   easy:["0","π/6","π/4","π/3","π/2"],
@@ -144,7 +152,7 @@ function lobbyCode(){
 function safeName(n){ return String(n||"Player").trim().slice(0,16) || "Player"; }
 function totalQuestions(mode){ return mode==="ten"?10:mode==="fifty"?50:mode==="classic"?20:Infinity; }
 function listPlayers(lobby){
-  return [...lobby.players.values()].map(p=>({id:p.id,name:p.name,score:p.score,streak:p.streak,bestStreak:p.bestStreak,host:p.host}));
+  return [...lobby.players.values()].map(p=>({id:p.id,name:p.name,score:p.score,streak:p.streak,bestStreak:p.bestStreak,host:p.host,ready:p.ready}));
 }
 function validSettings(s){
   return s && Array.isArray(s.trigs) && s.trigs.length &&
@@ -205,6 +213,7 @@ async function processAnswer(lobby,p,msg){
   if(correct){
     const updatedGlobal = await recordAnsweredQuestions(p.name, 1);
     io.emit("globalLeaderboardUpdate", updatedGlobal);
+    io.emit("globalCountUpdate", { totalQuestions: await getGlobalCount() });
     p.streak++; p.bestStreak=Math.max(p.bestStreak,p.streak); points=100;
     if(lobby.settings.gameMode!=="practice"){
       const limit=Number(lobby.settings.timeLimit)||2;
@@ -245,12 +254,13 @@ function disconnectPlayer(socket){
 
 io.on("connection", async socket=>{
   socket.emit("globalLeaderboardUpdate", await getTopLeaderboard());
+  socket.emit("globalCountUpdate", { totalQuestions: await getGlobalCount() });
 
   socket.on("createLobby",({name,settings}={})=>{
     if(!validSettings(settings)) return socket.emit("error",{message:"Invalid multiplayer settings."});
     const code=lobbyCode(), pid=id();
     const lobby={code,io,hostId:pid,settings,players:new Map(),gameStarted:false,questionIndex:0,total:totalQuestions(settings.gameMode),question:null,timer:null};
-    lobby.players.set(pid,{id:pid,name:safeName(name),host:true,score:0,streak:0,bestStreak:0});
+    lobby.players.set(pid,{id:pid,name:safeName(name),host:true,ready:true,score:0,streak:0,bestStreak:0});
     lobbies.set(code,lobby);
     socket.data.lobby=lobby; socket.data.playerId=pid; socket.join(code);
     socket.emit("lobbyCreated",{playerId:pid,code,host:true,settings,players:listPlayers(lobby)});
@@ -262,7 +272,7 @@ io.on("connection", async socket=>{
     if(lobby.gameStarted) return socket.emit("error",{message:"That game has already started."});
     if(lobby.players.size>=20) return socket.emit("error",{message:"That lobby is full."});
     const pid=id();
-    lobby.players.set(pid,{id:pid,name:safeName(name),host:false,score:0,streak:0,bestStreak:0});
+    lobby.players.set(pid,{id:pid,name:safeName(name),host:false,ready:false,score:0,streak:0,bestStreak:0});
     socket.data.lobby=lobby; socket.data.playerId=pid; socket.join(lobby.code);
     socket.emit("connected",{playerId:pid,code:lobby.code,host:false,settings:lobby.settings,players:listPlayers(lobby)});
     broadcastLobby(lobby,"lobbyUpdate",{settings:lobby.settings});
@@ -272,7 +282,13 @@ io.on("connection", async socket=>{
     const lobby=socket.data.lobby;
     const p=lobby && lobby.players.get(socket.data.playerId);
     if(!lobby || !p) return;
-    if(msg.type==="start"){
+    
+    if(msg.type==="toggleReady"){
+      p.ready = !p.ready;
+      broadcastLobby(lobby,"lobbyUpdate",{settings:lobby.settings});
+    } else if(msg.type==="emote"){
+      broadcastLobby(lobby,"playerEmote",{playerId:p.id,emoji:msg.emoji});
+    } else if(msg.type==="start"){
       if(!p.host) return socket.emit("error",{message:"Only the host can start the game."});
       if(lobby.gameStarted) return socket.emit("error",{message:"The game is already running."});
       if(!validSettings(msg.settings)) return socket.emit("error",{message:"Invalid game settings. Refresh the page and try again."});
@@ -285,7 +301,7 @@ io.on("connection", async socket=>{
       lobby.io.in(lobby.code).emit("gameStart",startPayload);
       broadcastLeaderboard(lobby);
       socket.emit("startAccepted",{code:lobby.code});
-      setTimeout(()=>startQuestion(lobby),800);
+      setTimeout(()=>startQuestion(lobby),3500); // 3-second countdown buffer
     } else if(msg.type==="answer") {
       processAnswer(lobby,p,msg);
     } else if(msg.type==="leave") {
@@ -295,4 +311,4 @@ io.on("connection", async socket=>{
   socket.on("disconnect",()=>disconnectPlayer(socket));
 });
 
-httpServer.listen(PORT,"0.0.0.0",()=>console.log(`Trig Speed Challenge website running on port ${PORT}`));
+httpServer.listen(PORT,"0.0.0.0",()=>console.log(`Trig Speed Challenge running on port ${PORT}`));
