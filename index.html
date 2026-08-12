@@ -3,93 +3,376 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<!-- Custom Title & Favicon -->
 <title>Trig Speed Challenge</title>
+<link rel="icon" type="image/png" href="/favicon.png">
+
 <script src="/socket.io/socket.io.js"></script>
 <style>
-*{box-sizing:border-box}
-body{margin:0;min-height:100vh;font-family:Arial,Helvetica,sans-serif;background:linear-gradient(135deg,#111827,#1e293b);color:#fff;display:flex;justify-content:center;align-items:center}
-.container{width:min(950px,94vw);background:#182235;border-radius:22px;padding:30px;box-shadow:0 20px 60px rgba(0,0,0,.35);position:relative;overflow:hidden}
-h1{text-align:center;margin:0;font-size:38px}.subtitle{text-align:center;color:#aab6ca;margin:8px 0 30px}
+:root {
+  --bg-main: #0b0f19;
+  --bg-card: rgba(22, 31, 48, 0.7);
+  --bg-input: #0a1120;
+  --accent-blue: #3b82f6;
+  --accent-blue-hover: #2563eb;
+  --accent-green: #22c55e;
+  --accent-green-hover: #16a34a;
+  --accent-red: #ef4444;
+  --border-color: rgba(255, 255, 255, 0.08);
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --shadow-glow: 0 10px 30px -10px rgba(59, 130, 246, 0.3);
+}
 
-/* Scrolling Sponsor Ticker */
+*{box-sizing:border-box}
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: var(--bg-main);
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(59, 130, 246, 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(16, 185, 129, 0.1) 0px, transparent 50%);
+  color: var(--text-main);
+  display: flex;
+  flex-direction: column;
+}
+
+/* Screen Wrapper */
+.app-wrapper {
+  width: 100%;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  position: relative;
+}
+
+/* Sponsor Ticker */
 .sponsor-ticker-container {
   width: 100%;
-  background: #0f172a;
+  background: rgba(15, 23, 42, 0.8);
+  backdrop-filter: blur(8px);
   border-radius: 12px;
   overflow: hidden;
   margin-bottom: 20px;
-  padding: 8px 0;
+  padding: 10px 0;
   display: flex;
   white-space: nowrap;
-  border: 1px solid #1e293b;
+  border: 1px solid var(--border-color);
 }
 .sponsor-ticker-track {
   display: flex;
-  gap: 50px;
-  animation: ticker-scroll 12s linear infinite;
+  gap: 60px;
+  animation: ticker-scroll 16s linear infinite;
 }
 .sponsor-ticker-item {
-  color: #60a5fa;
-  font-weight: bold;
-  font-size: 14px;
-  letter-spacing: 1px;
+  color: var(--accent-blue);
+  font-weight: 700;
+  font-size: 13px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
 }
 @keyframes ticker-scroll {
   0% { transform: translateX(0); }
   100% { transform: translateX(-50%); }
 }
 
-.setup-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:18px}.setting{background:#202d43;padding:18px;border-radius:14px}.setting label{display:block;margin-bottom:9px;font-weight:bold}
-select,input{width:100%;padding:12px;border:none;border-radius:9px;background:#0f172a;color:#fff;font-size:17px;outline:none}
-.trig-buttons{display:flex;flex-wrap:wrap;gap:8px}.trig-button{background:#334155;border:2px solid transparent;padding:10px 16px;border-radius:9px;color:#fff;cursor:pointer;font-size:16px}.trig-button.selected{background:#2563eb;border-color:#60a5fa}
-button{border:none;cursor:pointer;color:#fff;font-size:17px;border-radius:10px;padding:13px 20px;transition:.15s}button:hover{transform:translateY(-1px)}
-.start-btn{width:100%;margin-top:22px;background:#16a34a;font-size:21px;font-weight:bold}.start-btn:hover{background:#15803d}
-.game,.results{display:none}.top-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}.stat{background:#202d43;border-radius:12px;padding:12px;text-align:center}.stat-title{color:#94a3b8;font-size:13px}.stat-value{font-size:24px;font-weight:bold;margin-top:3px}
-.timer-container{width:100%;height:13px;background:#0f172a;border-radius:20px;overflow:hidden;margin-bottom:30px}.timer-bar{width:100%;height:100%;background:#22c55e}
-.question-box{background:#0f172a;border-radius:18px;padding:45px 20px;text-align:center;margin-bottom:25px}.question{font-size:56px;font-weight:bold}
+/* Main Layout Grid */
+.main-layout {
+  width: 100%;
+  flex: 1;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
 
-.answer-container{display:flex;flex-direction:column;align-items:center;gap:15px;margin-bottom:20px}
-.sign-toggle-btn{background:#334155;border:2px solid #60a5fa;font-size:24px;font-weight:bold;width:90px;padding:10px;border-radius:10px;color:#fff;cursor:pointer;transition:.15s}
-.sign-toggle-btn.negative{background:#dc2626;border-color:#f87171}
-.choice-grid{display:flex;flex-wrap:wrap;justify-content:center;gap:12px;width:100%}
-.choice-btn{background:#202d43;border:2px solid #334155;padding:14px 22px;border-radius:12px;font-size:22px;font-weight:bold;color:#fff;cursor:pointer;min-width:90px;text-align:center;transition:.15s}
-.choice-btn:hover{background:#334155;border-color:#60a5fa}
+/* PC Full Width Mode Layout */
+@media (min-width: 1024px) {
+  .app-wrapper {
+    padding: 30px;
+  }
+  .main-layout {
+    grid-template-columns: 1fr 380px;
+  }
+  .setup-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  .choice-btn {
+    min-width: 110px !important;
+    padding: 18px 28px !important;
+    font-size: 24px !important;
+  }
+}
 
-.stop-btn{width:100%;background:#dc2626;margin-top:12px}
-.feedback{height:35px;text-align:center;font-size:20px;font-weight:bold}.correct{color:#4ade80}.wrong{color:#f87171}
-.results{text-align:center}.results h2{font-size:35px}.result-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin:25px 0}.result-card{background:#202d43;border-radius:12px;padding:20px}.result-number{font-size:30px;font-weight:bold}.back-btn{background:#475569;width:100%}
-.hint{text-align:center;color:#94a3b8;margin-top:12px;font-size:14px}
-.game-logo { display: block; width: 480px; height: 480px; object-fit: contain; margin: 0 auto 10px; }
+/* Cards & Containers */
+.card-box {
+  background: var(--bg-card);
+  backdrop-filter: blur(16px);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 28px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+}
 
-.mode-tabs{display:flex;gap:10px;margin:0 0 18px}
-.mode-tab{flex:1;background:#334155;font-weight:bold}
-.mode-tab.active{background:#2563eb}
-.mp-panel,.global-lb-panel{display:none;background:#202d43;padding:18px;border-radius:14px;margin-bottom:18px}
-.mp-panel.show,.global-lb-panel.show{display:block}
-.mp-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.mp-actions{display:flex;gap:10px;margin-top:12px}
-.mp-actions button{flex:1}
-.mp-create{background:#16a34a}.mp-join{background:#2563eb}
-.mp-lobby{display:none;margin-top:16px;background:#0f172a;padding:18px;border-radius:14px}
-.mp-lobby.show{display:block}
-.mp-code{font-size:38px;font-weight:bold;letter-spacing:8px;text-align:center;margin:8px 0 14px}
-.mp-status{text-align:center;color:#aab6ca;margin-bottom:12px}
-.mp-players{display:grid;gap:8px;margin:12px 0}
-.mp-player{display:flex;justify-content:space-between;background:#202d43;padding:10px 12px;border-radius:9px}
-.mp-start{width:100%;background:#16a34a;margin-top:10px}
-.mp-leave{width:100%;background:#dc2626;margin-top:8px}
-.mp-scoreboard{display:none;background:#202d43;border-radius:12px;padding:12px;margin-bottom:18px;position:sticky;top:10px;z-index:20;box-shadow:0 8px 24px rgba(0,0,0,.28)}
-.mp-scoreboard.show{display:block}
-.mp-score-row{display:flex;justify-content:space-between;align-items:center;padding:8px;border-bottom:1px solid #334155}.mp-score-left{display:flex;gap:9px;align-items:center}.mp-rank-badge{min-width:30px;text-align:center;font-weight:bold}.mp-score-points{font-weight:bold}.mp-score-row.you{outline:1px solid #60a5fa;border-radius:8px;background:#172554}
-.mp-score-row:last-child{border-bottom:none}
-.mp-final{display:none;background:#202d43;border-radius:12px;padding:14px;margin-top:18px}
-.mp-rank-row{display:flex;justify-content:space-between;padding:8px;border-bottom:1px solid #334155}
-.mp-rank-row:last-child{border-bottom:none}
-.mp-error{color:#f87171;text-align:center;margin-top:10px;min-height:22px}
+.header-section {
+  text-align: center;
+  margin-bottom: 25px;
+}
+.game-logo {
+  display: block;
+  width: min(100%, 240px);
+  height: auto;
+  object-fit: contain;
+  margin: 0 auto 12px;
+}
+h1 {
+  margin: 0;
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  background: linear-gradient(135deg, #fff 0%, #a5f3fc 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.subtitle {
+  color: var(--text-muted);
+  margin-top: 6px;
+  font-size: 15px;
+}
 
-.global-lb-table{width:100%;border-collapse:collapse;margin-top:10px}
-.global-lb-table th,.global-lb-table td{padding:10px;text-align:left;border-bottom:1px solid #334155}
-.global-lb-table th{color:#94a3b8}
+/* Mode Tabs */
+.mode-tabs {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+.mode-tab {
+  flex: 1;
+  background: #1e293b;
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  font-weight: 700;
+  font-size: 14px;
+  padding: 12px;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.mode-tab:hover {
+  color: #fff;
+  background: #334155;
+}
+.mode-tab.active {
+  background: var(--accent-blue);
+  color: #fff;
+  border-color: rgba(255,255,255,0.2);
+  box-shadow: var(--shadow-glow);
+}
+
+/* Settings Form Grid */
+.setup-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+.setting {
+  background: rgba(15, 23, 42, 0.6);
+  padding: 16px;
+  border-radius: 14px;
+  border: 1px solid var(--border-color);
+}
+.setting label {
+  display: block;
+  margin-bottom: 8px;
+  font-weight: 600;
+  font-size: 14px;
+  color: #cbd5e1;
+}
+select, input {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  color: #fff;
+  font-size: 15px;
+  outline: none;
+  transition: border-color 0.2s;
+}
+select:focus, input:focus {
+  border-color: var(--accent-blue);
+}
+
+.trig-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.trig-button {
+  background: #1e293b;
+  border: 1px solid var(--border-color);
+  padding: 8px 16px;
+  border-radius: 8px;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+.trig-button.selected {
+  background: var(--accent-blue);
+  color: #fff;
+  border-color: #60a5fa;
+}
+
+/* Main Start Button */
+.start-btn {
+  width: 100%;
+  margin-top: 24px;
+  background: linear-gradient(135deg, #22c55e, #16a34a);
+  font-size: 18px;
+  font-weight: 700;
+  padding: 16px;
+  border-radius: 12px;
+  border: none;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 10px 25px -5px rgba(34, 197, 94, 0.4);
+  transition: transform 0.15s, filter 0.15s;
+}
+.start-btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+}
+
+/* Multiplayer & Global Leaderboard Panels */
+.mp-panel, .global-lb-panel {
+  display: none;
+  background: rgba(15, 23, 42, 0.6);
+  padding: 20px;
+  border-radius: 16px;
+  border: 1px solid var(--border-color);
+  margin-bottom: 20px;
+}
+.mp-panel.show, .global-lb-panel.show { display: block; }
+.mp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.mp-actions { display: flex; gap: 10px; margin-top: 12px; }
+.mp-actions button { flex: 1; }
+.mp-create { background: var(--accent-green); }
+.mp-join { background: var(--accent-blue); }
+
+.mp-lobby {
+  display: none;
+  margin-top: 16px;
+  background: var(--bg-input);
+  padding: 18px;
+  border-radius: 12px;
+}
+.mp-lobby.show { display: block; }
+.mp-code {
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: 6px;
+  text-align: center;
+  color: var(--accent-blue);
+  margin: 10px 0;
+}
+
+/* Global Leaderboard Table */
+.global-lb-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+}
+.global-lb-table th, .global-lb-table td {
+  padding: 12px 10px;
+  text-align: left;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 14px;
+}
+.global-lb-table th { color: var(--text-muted); font-size: 12px; text-transform: uppercase; }
+
+/* Gameplay Screen */
+.game, .results { display: none; }
+.top-bar {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+.stat {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 12px;
+  text-align: center;
+}
+.stat-title { color: var(--text-muted); font-size: 12px; text-transform: uppercase; }
+.stat-value { font-size: 22px; font-weight: 800; margin-top: 4px; }
+
+.timer-container {
+  width: 100%;
+  height: 10px;
+  background: var(--bg-input);
+  border-radius: 20px;
+  overflow: hidden;
+  margin-bottom: 24px;
+}
+.timer-bar { width: 100%; height: 100%; background: var(--accent-green); transition: width 0.03s linear; }
+
+.question-box {
+  background: var(--bg-input);
+  border: 1px solid var(--border-color);
+  border-radius: 20px;
+  padding: 40px 20px;
+  text-align: center;
+  margin-bottom: 24px;
+}
+.question { font-size: 48px; font-weight: 800; }
+
+.answer-container { display: flex; flex-direction: column; align-items: center; gap: 15px; margin-bottom: 20px; }
+.sign-toggle-btn {
+  background: #1e293b;
+  border: 2px solid var(--accent-blue);
+  font-size: 24px;
+  font-weight: 800;
+  width: 90px;
+  padding: 10px;
+  border-radius: 12px;
+  color: #fff;
+  cursor: pointer;
+}
+.sign-toggle-btn.negative { background: var(--accent-red); border-color: #f87171; }
+.choice-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; width: 100%; }
+.choice-btn {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid var(--border-color);
+  padding: 14px 22px;
+  border-radius: 12px;
+  font-size: 20px;
+  font-weight: 700;
+  color: #fff;
+  cursor: pointer;
+  min-width: 90px;
+  text-align: center;
+  transition: all 0.15s;
+}
+.choice-btn:hover { background: var(--accent-blue); border-color: #60a5fa; }
+
+.stop-btn { width: 100%; background: var(--accent-red); margin-top: 12px; padding: 14px; font-weight: 700; border-radius: 10px; }
+.feedback { height: 35px; text-align: center; font-size: 18px; font-weight: 700; }
+.correct { color: #4ade80; }
+.wrong { color: #f87171; }
+
+/* Results Modal */
+.results { text-align: center; }
+.results h2 { font-size: 32px; margin-top: 0; }
+.result-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 25px 0; }
+.result-card { background: rgba(15, 23, 42, 0.6); border: 1px solid var(--border-color); border-radius: 12px; padding: 16px; }
+.result-number { font-size: 26px; font-weight: 800; color: var(--accent-blue); }
+.back-btn { background: #475569; width: 100%; padding: 14px; font-weight: 700; border-radius: 10px; }
 
 /* Hidden Secret Admin Circle */
 .secret-admin-circle {
@@ -99,12 +382,9 @@ button{border:none;cursor:pointer;color:#fff;font-size:17px;border-radius:10px;p
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background-color: #182235;
+  background-color: transparent;
   cursor: pointer;
   z-index: 10;
-}
-.secret-admin-circle:hover {
-  background-color: #1e2b42;
 }
 
 /* Admin Modal Popup */
@@ -112,174 +392,221 @@ button{border:none;cursor:pointer;color:#fff;font-size:17px;border-radius:10px;p
   display: none;
   position: fixed;
   top: 0; left: 0; width: 100vw; height: 100vh;
-  background: rgba(0,0,0,0.6);
+  background: rgba(0,0,0,0.7);
+  backdrop-filter: blur(6px);
   justify-content: center;
   align-items: center;
   z-index: 100;
 }
 .admin-modal.show { display: flex; }
 .admin-box {
-  background: #202d43;
+  background: #161f30;
+  border: 1px solid var(--border-color);
   padding: 25px;
   border-radius: 16px;
   width: min(340px, 90vw);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.6);
   text-align: center;
 }
 .admin-box h3 { margin-top: 0; }
 .admin-box input { margin-bottom: 15px; }
 .admin-actions { display: flex; gap: 10px; }
-.admin-actions button { flex: 1; }
-.admin-submit-btn { background: #2563eb; }
+.admin-actions button { flex: 1; padding: 10px; border-radius: 8px; font-weight: bold; }
+.admin-submit-btn { background: var(--accent-blue); }
 .admin-cancel-btn { background: #475569; }
-.remove-btn{background:#dc2626;font-size:12px;padding:5px 10px;border-radius:6px;cursor:pointer}
+.remove-btn { background: var(--accent-red); font-size: 12px; padding: 5px 10px; border-radius: 6px; cursor: pointer; border: none; color: #fff; }
 
-@media(max-width:700px){.setup-grid{grid-template-columns:1fr}.top-bar{grid-template-columns:repeat(2,1fr)}.question{font-size:42px}.result-grid{grid-template-columns:1fr}}
+@media(max-width: 768px){
+  .setup-grid { grid-template-columns: 1fr; }
+  .top-bar { grid-template-columns: repeat(2, 1fr); }
+  .question { font-size: 38px; }
+  .result-grid { grid-template-columns: 1fr; }
+}
 </style>
 </head>
 <body>
-<div class="container">
 
-<!-- Hidden Secret Admin Circle -->
-<div class="secret-admin-circle" onclick="openAdminModal()"></div>
+<div class="app-wrapper">
 
-<!-- Looping Sponsor Ticker -->
-<div class="sponsor-ticker-container">
-  <div class="sponsor-ticker-track">
-    <span class="sponsor-ticker-item">⭐ SPONSORED BY GABRIEL SALUDO ⭐</span>
-    <span class="sponsor-ticker-item">⭐ SPONSORED BY GABRIEL SALUDO ⭐</span>
-    <span class="sponsor-ticker-item">⭐ SPONSORED BY GABRIEL SALUDO ⭐</span>
-    <span class="sponsor-ticker-item">⭐ SPONSORED BY GABRIEL SALUDO ⭐</span>
-    <span class="sponsor-ticker-item">⭐ SPONSORED BY GABRIEL SALUDO ⭐</span>
-    <span class="sponsor-ticker-item">⭐ SPONSORED BY GABRIEL SALUDO ⭐</span>
-  </div>
-</div>
+  <!-- Secret Admin Trigger -->
+  <div class="secret-admin-circle" onclick="openAdminModal()"></div>
 
-<div id="setup">
-<img src="/logo.png" class="game-logo">
-<h1>⚡ Trig Speed Challenge</h1>
-<div class="subtitle">Fast-paced trigonometry practice — solo or online multiplayer</div>
-
-<div class="mode-tabs">
-  <button id="soloModeTab" class="mode-tab active" onclick="selectMode('solo')">🎮 SOLO</button>
-  <button id="multiModeTab" class="mode-tab" onclick="selectMode('multi')">👥 MULTIPLAYER</button>
-  <button id="globalLbTab" class="mode-tab" onclick="selectMode('global')">🌐 LEADERBOARD</button>
-</div>
-
-<div id="mpPanel" class="mp-panel">
-  <div class="mp-grid">
-    <div class="setting">
-      <label>Your name</label>
-      <input id="mpName" maxlength="16" placeholder="Player name">
-    </div>
-    <div class="setting">
-      <label>Lobby code</label>
-      <input id="mpLobbyCode" maxlength="5" placeholder="ABCDE" style="text-transform:uppercase">
+  <!-- Sponsor Ticker -->
+  <div class="sponsor-ticker-container">
+    <div class="sponsor-ticker-track">
+      <span class="sponsor-ticker-item">⭐ SPONSORED BY GABRIEL SALUDO ⭐</span>
+      <span class="sponsor-ticker-item">⭐ SPONSORED BY GABRIEL SALUDO ⭐</span>
+      <span class="sponsor-ticker-item">⭐ SPONSORED BY GABRIEL SALUDO ⭐</span>
+      <span class="sponsor-ticker-item">⭐ SPONSORED BY GABRIEL SALUDO ⭐</span>
+      <span class="sponsor-ticker-item">⭐ SPONSORED BY GABRIEL SALUDO ⭐</span>
+      <span class="sponsor-ticker-item">⭐ SPONSORED BY GABRIEL SALUDO ⭐</span>
     </div>
   </div>
-  <div class="mp-actions">
-    <button class="mp-create" onclick="createMultiplayerLobby()">CREATE LOBBY</button>
-    <button class="mp-join" onclick="joinMultiplayerLobby()">JOIN LOBBY</button>
+
+  <div class="main-layout">
+
+    <!-- Left Main Setup Card -->
+    <div class="card-box">
+      
+      <div id="setup">
+        <div class="header-section">
+          <img src="/logo.png" class="game-logo" alt="Game Logo">
+          <h1>⚡ Trig Speed Challenge</h1>
+          <div class="subtitle">Master trigonometry with fast-paced solo & multiplayer modes</div>
+        </div>
+
+        <div class="mode-tabs">
+          <button id="soloModeTab" class="mode-tab active" onclick="selectMode('solo')">🎮 SOLO</button>
+          <button id="multiModeTab" class="mode-tab" onclick="selectMode('multi')">👥 MULTIPLAYER</button>
+          <button id="globalLbTab" class="mode-tab" onclick="selectMode('global')">🌐 LEADERBOARD</button>
+        </div>
+
+        <div id="mpPanel" class="mp-panel">
+          <div class="mp-grid">
+            <div class="setting">
+              <label>Your Name</label>
+              <input id="mpName" maxlength="16" placeholder="Player name">
+            </div>
+            <div class="setting">
+              <label>Lobby Code</label>
+              <input id="mpLobbyCode" maxlength="5" placeholder="ABCDE" style="text-transform:uppercase">
+            </div>
+          </div>
+          <div class="mp-actions">
+            <button class="mp-create" onclick="createMultiplayerLobby()">CREATE LOBBY</button>
+            <button class="mp-join" onclick="joinMultiplayerLobby()">JOIN LOBBY</button>
+          </div>
+          <div id="mpError" class="mp-error"></div>
+          <div id="mpLobby" class="mp-lobby">
+            <div class="mp-status" id="mpLobbyStatus"></div>
+            <div class="mp-code" id="mpCode">-----</div>
+            <div class="mp-players" id="mpPlayers"></div>
+            <button id="mpStartBtn" class="mp-start" onclick="startMultiplayerGame()">START GAME</button>
+            <button class="mp-leave" onclick="leaveMultiplayerLobby()">LEAVE LOBBY</button>
+          </div>
+        </div>
+
+        <div id="globalLbPanel" class="global-lb-panel">
+          <h3 style="margin-top:0">🏆 Site-Wide Leaderboard</h3>
+          <table class="global-lb-table">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Player</th>
+                <th>Correct Answers</th>
+                <th id="adminHeader" style="display:none">Action</th>
+              </tr>
+            </thead>
+            <tbody id="globalLbBody">
+              <tr><td colspan="3">Loading leaderboard...</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="setup-grid">
+          <div class="setting" style="grid-column: 1 / -1;">
+            <label>Your Player Name (for Global Leaderboard)</label>
+            <input id="soloName" maxlength="16" placeholder="Enter your name">
+          </div>
+          <div class="setting">
+            <label>Seconds Per Question</label>
+            <input id="timeInput" type="number" min="0.5" max="60" step="0.5" value="2">
+          </div>
+          <div class="setting">
+            <label>Difficulty</label>
+            <select id="difficulty">
+              <option value="easy">Easy</option>
+              <option value="medium">Medium</option>
+              <option value="hard">Hard</option>
+            </select>
+          </div>
+          <div class="setting">
+            <label>Game Mode</label>
+            <select id="gameMode">
+              <option value="classic">Classic — 20 Questions</option>
+              <option value="ten">10 Questions</option>
+              <option value="fifty">50 Questions</option>
+              <option value="endless">Endless</option>
+              <option value="practice">Practice — No Timer</option>
+            </select>
+          </div>
+          <div class="setting">
+            <label>Negative Answers</label>
+            <select id="negativeMode">
+              <option value="both">Positive & Negative</option>
+              <option value="positive">Positive Only</option>
+              <option value="negative">Negative Only</option>
+            </select>
+          </div>
+
+          <div class="setting" style="grid-column: 1 / -1;">
+            <label>Choose Trig Functions</label>
+            <div class="trig-buttons">
+              <button class="trig-button selected" data-trig="sin">sin</button>
+              <button class="trig-button selected" data-trig="cos">cos</button>
+              <button class="trig-button selected" data-trig="tan">tan</button>
+              <button class="trig-button selected" data-trig="sec">sec</button>
+              <button class="trig-button selected" data-trig="csc">csc</button>
+              <button class="trig-button selected" data-trig="cot">cot</button>
+            </div>
+          </div>
+        </div>
+
+        <button class="start-btn" onclick="startGame()">START GAME</button>
+      </div>
+
+      <!-- Gameplay View -->
+      <div id="game" class="game">
+        <div id="mpScoreboard" class="mp-scoreboard">
+          <div style="font-weight:bold;margin-bottom:8px">🏆 Live Scores</div>
+          <div id="mpScoreRows"></div>
+        </div>
+
+        <div class="top-bar">
+          <div class="stat"><div class="stat-title">Score</div><div class="stat-value" id="score">0</div></div>
+          <div class="stat"><div class="stat-title">Streak</div><div class="stat-value" id="streak">0</div></div>
+          <div class="stat"><div class="stat-title">Best Streak</div><div class="stat-value" id="bestStreak">0</div></div>
+          <div class="stat"><div class="stat-title">Question</div><div class="stat-value" id="questionNumber">1/20</div></div>
+        </div>
+
+        <div class="timer-container"><div class="timer-bar" id="timerBar"></div></div>
+        <div class="question-box"><div class="question" id="question">sin(π/3)</div></div>
+
+        <div class="answer-container">
+          <button id="signToggleBtn" class="sign-toggle-btn" onclick="toggleSign()">+</button>
+          <div id="choiceGrid" class="choice-grid"></div>
+        </div>
+
+        <div class="feedback" id="feedback"></div>
+        <button class="stop-btn" onclick="stopGame()">STOP GAME</button>
+      </div>
+
+      <!-- Results View -->
+      <div id="results" class="results">
+        <h2>🏁 Game Over!</h2>
+        <div class="result-grid">
+          <div class="result-card"><div>Score</div><div class="result-number" id="finalScore">0</div></div>
+          <div class="result-card"><div>Accuracy</div><div class="result-number" id="finalAccuracy">0%</div></div>
+          <div class="result-card"><div>Best Streak</div><div class="result-number" id="finalStreak">0</div></div>
+          <div class="result-card"><div>Correct</div><div class="result-number" id="finalCorrect">0</div></div>
+          <div class="result-card"><div>Average Time</div><div class="result-number" id="finalTime">0s</div></div>
+          <div class="result-card"><div>Personal Best</div><div class="result-number" id="personalBest">0</div></div>
+        </div>
+
+        <div id="mpFinal" class="mp-final">
+          <b>🏆 Multiplayer Rankings</b>
+          <div id="mpRanking"></div>
+        </div>
+
+        <button id="backBtn" class="back-btn" onclick="backToSetup()">PLAY AGAIN</button>
+      </div>
+
+    </div>
+
   </div>
-  <div id="mpError" class="mp-error"></div>
-  <div id="mpLobby" class="mp-lobby">
-    <div class="mp-status" id="mpLobbyStatus"></div>
-    <div class="mp-code" id="mpCode">-----</div>
-    <div class="mp-players" id="mpPlayers"></div>
-    <button id="mpStartBtn" class="mp-start" onclick="startMultiplayerGame()">START GAME</button>
-    <button class="mp-leave" onclick="leaveMultiplayerLobby()">LEAVE LOBBY</button>
-  </div>
 </div>
 
-<div id="globalLbPanel" class="global-lb-panel">
-  <h3 style="margin-top:0">🏆 Site-Wide Leaderboard: Most Questions Answered Correctly</h3>
-  <table class="global-lb-table">
-    <thead>
-      <tr>
-        <th>Rank</th>
-        <th>Player</th>
-        <th>Questions Answered</th>
-        <th id="adminHeader" style="display:none">Action</th>
-      </tr>
-    </thead>
-    <tbody id="globalLbBody">
-      <tr><td colspan="3">Loading leaderboard...</td></tr>
-    </tbody>
-  </table>
-</div>
-
-<div class="setup-grid">
-<div class="setting" style="grid-column:1/-1">
-  <label>Your Player Name (for Global Leaderboard)</label>
-  <input id="soloName" maxlength="16" placeholder="Enter your name">
-</div>
-<div class="setting"><label>Seconds per question</label><input id="timeInput" type="number" min="0.5" max="60" step="0.5" value="2"></div>
-<div class="setting"><label>Difficulty</label><select id="difficulty"><option value="easy">Easy</option><option value="medium">Medium</option><option value="hard">Hard</option></select></div>
-<div class="setting"><label>Game mode</label><select id="gameMode"><option value="classic">Classic — 20 Questions</option><option value="ten">10 Questions</option><option value="fifty">50 Questions</option><option value="endless">Endless</option><option value="practice">Practice — No Timer</option></select></div>
-<div class="setting"><label>Negative answers</label><select id="negativeMode"><option value="both">Positive & Negative</option><option value="positive">Positive Only</option><option value="negative">Negative Only</option></select></div>
-
-<div class="setting" style="grid-column:1/-1">
-<label>Choose trig functions</label>
-<div class="trig-buttons">
-<button class="trig-button selected" data-trig="sin">sin</button>
-<button class="trig-button selected" data-trig="cos">cos</button>
-<button class="trig-button selected" data-trig="tan">tan</button>
-<button class="trig-button selected" data-trig="sec">sec</button>
-<button class="trig-button selected" data-trig="csc">csc</button>
-<button class="trig-button selected" data-trig="cot">cot</button>
-</div>
-</div>
-</div>
-<button class="start-btn" onclick="startGame()">START GAME</button>
-</div>
-
-<div id="game" class="game">
-
-<div id="mpScoreboard" class="mp-scoreboard">
-  <div style="font-weight:bold;margin-bottom:8px">🏆 Live Scores</div>
-  <div id="mpScoreRows"></div>
-</div>
-
-<div class="top-bar">
-<div class="stat"><div class="stat-title">Score</div><div class="stat-value" id="score">0</div></div>
-<div class="stat"><div class="stat-title">Streak</div><div class="stat-value" id="streak">0</div></div>
-<div class="stat"><div class="stat-title">Best Streak</div><div class="stat-value" id="bestStreak">0</div></div>
-<div class="stat"><div class="stat-title">Question</div><div class="stat-value" id="questionNumber">1/20</div></div>
-</div>
-<div class="timer-container"><div class="timer-bar" id="timerBar"></div></div>
-<div class="question-box"><div class="question" id="question">sin(π/3)</div></div>
-
-<div class="answer-container">
-  <button id="signToggleBtn" class="sign-toggle-btn" onclick="toggleSign()">+</button>
-  <div id="choiceGrid" class="choice-grid"></div>
-</div>
-
-<div class="feedback" id="feedback"></div>
-<button class="stop-btn" onclick="stopGame()">STOP GAME</button>
-<div class="hint">Click choice to submit • ESC to stop</div>
-</div>
-
-<div id="results" class="results">
-<h2>🏁 Game Over!</h2>
-<div class="result-grid">
-<div class="result-card"><div>Score</div><div class="result-number" id="finalScore">0</div></div>
-<div class="result-card"><div>Accuracy</div><div class="result-number" id="finalAccuracy">0%</div></div>
-<div class="result-card"><div>Best Streak</div><div class="result-number" id="finalStreak">0</div></div>
-<div class="result-card"><div>Correct</div><div class="result-number" id="finalCorrect">0</div></div>
-<div class="result-card"><div>Average Time</div><div class="result-number" id="finalTime">0s</div></div>
-<div class="result-card"><div>Personal Best</div><div class="result-number" id="personalBest">0</div></div>
-</div>
-
-<div id="mpFinal" class="mp-final">
-  <b>🏆 Multiplayer Rankings</b>
-  <div id="mpRanking"></div>
-</div>
-
-<button id="backBtn" class="back-btn" onclick="backToSetup()">PLAY AGAIN</button>
-</div>
-</div>
-
-<!-- Admin Key Modal -->
+<!-- Admin Password Modal -->
 <div id="adminModal" class="admin-modal">
   <div class="admin-box">
     <h3>🔒 Admin Mode</h3>
