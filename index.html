@@ -62,7 +62,7 @@ button{border:none;cursor:pointer;color:#fff;font-size:17px;border-radius:10px;p
 .global-lb-table th,.global-lb-table td{padding:10px;text-align:left;border-bottom:1px solid #334155}
 .global-lb-table th{color:#94a3b8}
 
-/* Hidden Secret Admin Circle */
+/* Red Admin Button */
 .secret-admin-circle {
   position: absolute;
   top: 15px;
@@ -70,12 +70,15 @@ button{border:none;cursor:pointer;color:#fff;font-size:17px;border-radius:10px;p
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background-color: #182235; /* Matches container background */
+  background-color: #dc2626;
+  border: 2px solid #f87171;
   cursor: pointer;
   z-index: 10;
+  transition: transform 0.15s, background-color 0.15s;
 }
 .secret-admin-circle:hover {
-  background-color: #1d2a42; /* Very faint hover state */
+  background-color: #ef4444;
+  transform: scale(1.15);
 }
 
 /* Admin Modal Popup */
@@ -111,8 +114,8 @@ button{border:none;cursor:pointer;color:#fff;font-size:17px;border-radius:10px;p
 <body>
 <div class="container">
 
-<!-- Hidden Secret Admin Circle -->
-<div class="secret-admin-circle" onclick="openAdminModal()"></div>
+<!-- Red Admin Circle -->
+<div class="secret-admin-circle" onclick="openAdminModal()" title="Admin Mode"></div>
 
 <div id="setup">
 <img src="/logo.png" class="game-logo">
@@ -253,7 +256,7 @@ button{border:none;cursor:pointer;color:#fff;font-size:17px;border-radius:10px;p
 <script>
 const QUESTIONS = {
 sin:{"0":["0","+"],"π/6":["1/2","+"],"π/4":["√2/2","+"],"π/3":["√3/2","+"],"π/2":["1","+"],"2π/3":["√3/2","+"],"3π/4":["√2/2","+"],"5π/6":["1/2","+"],"π":["0","+"],"7π/6":["1/2","-"],"5π/4":["√2/2","-"],"4π/3":["√3/2","-"],"3π/2":["1","-"],"5π/3":["√3/2","-"],"7π/4":["√2/2","-"],"11π/6":["1/2","-"],"2π":["0","+"]},
-cos:{"0":["1","+"],"π/6":["√3/2","+"],"π/4":["√2/2","+"],"π/3":["1/2","+"],"π/2":["0","+"],"2π/3":["1/2","-"],"3π/4":["√2/2","-"],"5π/6":["√3/2","-"],"π":["1","-"],"7π/6":["√3/2","-"],"5π/4":["√2/2","-"],"4π/3":["1/2","-"],"3π/2":["0","+"],"5π/3":["1/2","+"],"7π/4":["√2/2","+"],"11π/6":["√3/2","+"],"2π":["0","+"]},
+cos:{"0":["1","+"],"π/6":["√3/2","+"],"π/4":["√2/2","+"],"π/3":["1/2","+"],"π/2":["0","+"],"2π/3":["1/2","-"],"3π/4":["√2/2","-"],"5π/6":["√3/2","-"],"π":["1","-"],"7π/6":["√3/2","-"],"5π/4":["√2/2","-"],"4π/3":["1/2","-"],"3π/2":["0","+"],"5π/3":["1/2","+"],"7π/4":["√2/2","+"],"11π/6":["√3/2","+"],"2π":["1","+"]},
 tan:{"0":["0","+"],"π/6":["√3/3","+"],"π/4":["1","+"],"π/3":["√3","+"],"π":["0","+"],"2π/3":["√3","-"],"3π/4":["1","-"],"5π/6":["√3/3","-"],"7π/6":["√3/3","+"],"5π/4":["1","+"],"4π/3":["√3","+"],"3π/2":["undefined","+"],"5π/3":["√3","-"],"7π/4":["1","-"],"11π/6":["√3/3","-"],"2π":["0","+"]},
 sec:{"0":["1","+"],"π/3":["2","+"],"2π/3":["2","-"],"π":["1","-"],"4π/3":["2","-"],"5π/3":["2","+"],"2π":["1","+"],"π/2":["undefined","+"],"3π/2":["undefined","+"]},
 csc:{"π/6":["2","+"],"π/2":["1","+"],"5π/6":["2","+"],"7π/6":["2","-"],"3π/2":["1","-"],"11π/6":["2","-"],"0":["undefined","+"],"π":["undefined","+"]},
@@ -373,7 +376,7 @@ function fetchGlobalLeaderboard() {
     .catch(() => {});
 }
 
-/* Secret Admin System Functions */
+/* Admin System Functions */
 function openAdminModal() {
   if (adminKey) {
     if (confirm("Logout from Admin Mode?")) {
