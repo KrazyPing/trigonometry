@@ -196,7 +196,7 @@ button{border:none;cursor:pointer;color:#fff;font-size:17px;border-radius:10px;p
   <div id="mpRanking"></div>
 </div>
 
-<button class="back-btn" onclick="backToSetup()">PLAY AGAIN</button>
+<button id="backBtn" class="back-btn" onclick="backToSetup()">PLAY AGAIN</button>
 </div>
 </div>
 
@@ -432,6 +432,9 @@ function connectMultiplayer(){
     document.getElementById("mpRanking").innerHTML=(msg.rankings||[]).map((p,i)=>
       `<div class="mp-rank-row"><span>#${i+1} ${p.host?"👑 ":""}${escapeMp(p.name)}${p.id===mpPlayerId?" <b>(YOU)</b>":""}</span><b>${p.score}</b></div>`
     ).join("");
+    
+    // Change Back button text when in multiplayer mode
+    document.getElementById("backBtn").textContent = appMode === "multi" ? "RETURN TO LOBBY" : "PLAY AGAIN";
   });
 }
 
@@ -681,6 +684,12 @@ clearInterval(timerInterval);
 document.getElementById("results").style.display="none";
 document.getElementById("game").style.display="none";
 document.getElementById("setup").style.display="block";
+
+if(appMode === "multi") {
+  selectMode("multi");
+  showMpLobby();
+  renderMpPlayers();
+}
 }
 
 document.addEventListener("keydown",e=>{
