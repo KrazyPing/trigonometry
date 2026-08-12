@@ -6,6 +6,7 @@ const express = require("express");
 const { Server } = require("socket.io");
 
 const PORT = Number(process.env.PORT || 3000);
+const ADMIN_KEY = String(process.env.ADMIN_KEY || "admin123").trim();
 const DB_FILE = path.join(__dirname, "leaderboard.json");
 
 // Persistent Site-Wide Leaderboard Store
@@ -36,13 +37,23 @@ function recordAnsweredQuestions(name, count = 1) {
     globalLeaderboard[key] = { name: cleanName, questionsAnswered: 0 };
   }
   
-  globalLeaderboard[key].name = cleanName; // preserve casing
+  globalLeaderboard[key].name = cleanName;
   globalLeaderboard[key].questionsAnswered += count;
   saveLeaderboard();
   return getTopLeaderboard();
 }
 
-function getTopLeaderboard(limit = 20) {
+function removePlayerFromLeaderboard(name) {
+  const key = String(name || "").trim().toLowerCase();
+  if (globalLeaderboard[key]) {
+    delete globalLeaderboard[key];
+    saveLeaderboard();
+    return true;
+  }
+  return false;
+}
+
+function getTopLeaderboard(limit = 50) {
   return Object.values(globalLeaderboard)
     .sort((a, b) => b.questionsAnswered - a.questionsAnswered)
     .slice(0, limit);
@@ -50,11 +61,9 @@ function getTopLeaderboard(limit = 20) {
 
 const app = express();
 app.use(express.json());
-
-// Serve static files from root directory where index.html is located
 app.use(express.static(__dirname));
 
-// Leaderboard API endpoint
+// Public API endpoint
 app.get("/api/leaderboard", (_req, res) => {
   res.json(getTopLeaderboard(50));
 });
@@ -70,7 +79,35 @@ app.post("/api/record-questions", (req, res) => {
   res.json({ success: true });
 });
 
-// Express 5+ wildcard route fallback
+// ADMIN API: Login check
+app.post("/api/admin/login", (req, res) => {
+  const key = String(req.body?.key || "").trim();
+  if (key === ADMIN_KEY) {
+    return res.json({ success: true });
+  }
+  res.status(401).json({ error: "Invalid admin key" });
+});
+
+// ADMIN API: Remove player from leaderboard
+app.delete("/api/admin/leaderboard/:username", (req, res) => {
+  const reqKey = String(req.headers["x-admin-key"] || "").trim();
+  if (reqKey !== ADMIN_KEY) {
+    return res.status(403).json({ error: "Unauthorized" });
+  }
+
+  const { username } = req.params;
+  const removed = removePlayerFromLeaderboard(username);
+
+  if (removed) {
+    const updated = getTopLeaderboard(50);
+    io.emit("globalLeaderboardUpdate", updated);
+    return res.json({ success: true, leaderboard: updated });
+  }
+  
+  res.status(404).json({ error: "Player not found" });
+});
+
+// Express 5+ fallback route
 app.get("/{*splat}", (_req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
@@ -81,7 +118,7 @@ const lobbies = new Map();
 
 const QUESTIONS = {
   sin:{"0":["0","+"],"π/6":["1/2","+"],"π/4":["√2/2","+"],"π/3":["√3/2","+"],"π/2":["1","+"],"2π/3":["√3/2","+"],"3π/4":["√2/2","+"],"5π/6":["1/2","+"],"π":["0","+"],"7π/6":["1/2","-"],"5π/4":["√2/2","-"],"4π/3":["√3/2","-"],"3π/2":["1","-"],"5π/3":["√3/2","-"],"7π/4":["√2/2","-"],"11π/6":["1/2","-"],"2π":["0","+"]},
-  cos:{"0":["1","+"],"π/6":["√3/2","+"],"π/4":["√2/2","+"],"π/3":["1/2","+"],"π/2":["0","+"],"2π/3":["1/2","-"],"3π/4":["√2/2","-"],"5π/6":["√3/2","-"],"π":["1","-"],"7π/6":["√3/2","-"],"5π/4":["√2/2","-"],"4π/3":["1/2","-"],"3π/2":["0","+"],"5π/3":["1/2","+"],"7π/4":["√2/2","+"],"11π/6":["√3/2","+"],"2π":["1","+"]},
+  cos:{"0":["1","+"],"π/6":["√3/2","+"],"π/4":["√2/2","+"],"π/3":["1/2","+"],"π/2":["0","+"],"2π/3":["1/2","-"],"3π/4":["√2/2","-"],"5π/6":["√3/2","-"],"π":["1","-"],"7π/6":["√3/2","-"],"5π/4":["√2/2","-"],"4π/3":["1/2","-"],"3π/2":["0","+"],"5π/3":["1/2","+"],"7π/4":["√2/2","+"],"11π/6":["√3/2","+"],"2π":["0","+"]},
   tan:{"0":["0","+"],"π/6":["√3/3","+"],"π/4":["1","+"],"π/3":["√3","+"],"π":["0","+"],"2π/3":["√3","-"],"3π/4":["1","-"],"5π/6":["√3/3","-"],"7π/6":["√3/3","+"],"5π/4":["1","+"],"4π/3":["√3","+"],"3π/2":["undefined","+"],"5π/3":["√3","-"],"7π/4":["1","-"],"11π/6":["√3/3","-"],"2π":["0","+"]},
   sec:{"0":["1","+"],"π/3":["2","+"],"2π/3":["2","-"],"π":["1","-"],"4π/3":["2","-"],"5π/3":["2","+"],"2π":["1","+"],"π/2":["undefined","+"],"3π/2":["undefined","+"]},
   csc:{"π/6":["2","+"],"π/2":["1","+"],"5π/6":["2","+"],"7π/6":["2","-"],"3π/2":["1","-"],"11π/6":["2","-"],"0":["undefined","+"],"π":["undefined","+"]},
@@ -149,12 +186,6 @@ function startQuestion(lobby){
 }
 function expireQuestion(lobby,index){
   if(!lobby.gameStarted || !lobby.question || lobby.question.questionIndex!==index) return;
-  
-  for (const p of lobby.players.values()) {
-    recordAnsweredQuestions(p.name, 1);
-  }
-  io.emit("globalLeaderboardUpdate", getTopLeaderboard());
-
   broadcastLobby(lobby,"questionExpired",{questionIndex:index,correctAnswer:`${lobby.question.sign}${lobby.question.value}`});
   broadcastLeaderboard(lobby);
   lobby.timer=setTimeout(()=>startQuestion(lobby),650);
@@ -165,13 +196,12 @@ function processAnswer(lobby,p,msg){
   if(lobby.question.deadline && Date.now()>lobby.question.deadline) return;
   lobby.question.answers.add(p.id);
   
-  const updatedGlobal = recordAnsweredQuestions(p.name, 1);
-  io.emit("globalLeaderboardUpdate", updatedGlobal);
-
   const responseTime=(Date.now()-lobby.question.startedAt)/1000;
   const correct=msg.answer===lobby.question.value && msg.sign===lobby.question.sign;
   let points=0;
   if(correct){
+    const updatedGlobal = recordAnsweredQuestions(p.name, 1);
+    io.emit("globalLeaderboardUpdate", updatedGlobal);
     p.streak++; p.bestStreak=Math.max(p.bestStreak,p.streak); points=100;
     if(lobby.settings.gameMode!=="practice"){
       const limit=Number(lobby.settings.timeLimit)||2;
@@ -180,6 +210,7 @@ function processAnswer(lobby,p,msg){
     }
     points+=p.streak*5; p.score+=points;
   } else p.streak=0;
+
   broadcastLobby(lobby,"answerResult",{playerId:p.id,correct,points,score:p.score,streak:p.streak,bestStreak:p.bestStreak,responseTime:Number(responseTime.toFixed(3)),correctAnswer:`${lobby.question.sign}${lobby.question.value}`});
   broadcastLeaderboard(lobby);
   if(lobby.question.answers.size===lobby.players.size){
