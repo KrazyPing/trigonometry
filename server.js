@@ -1,19 +1,74 @@
-
 const path = require("path");
 const http = require("http");
+const fs = require("fs");
 const crypto = require("crypto");
 const express = require("express");
 const { Server } = require("socket.io");
 
 const PORT = Number(process.env.PORT || 3000);
+const DB_FILE = path.join(__dirname, "leaderboard.json");
+
+// Persistent Site-Wide Leaderboard Store
+let globalLeaderboard = {};
+
+if (fs.existsSync(DB_FILE)) {
+  try {
+    globalLeaderboard = JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
+  } catch (err) {
+    console.error("Error loading leaderboard file:", err);
+    globalLeaderboard = {};
+  }
+}
+
+function saveLeaderboard() {
+  try {
+    fs.writeFileSync(DB_FILE, JSON.stringify(globalLeaderboard, null, 2));
+  } catch (err) {
+    console.error("Error saving leaderboard file:", err);
+  }
+}
+
+function recordAnsweredQuestions(name, count = 1) {
+  const cleanName = String(name || "Player").trim().slice(0, 16) || "Player";
+  const key = cleanName.toLowerCase();
+  
+  if (!globalLeaderboard[key]) {
+    globalLeaderboard[key] = { name: cleanName, questionsAnswered: 0 };
+  }
+  
+  globalLeaderboard[key].name = cleanName; // preserve casing
+  globalLeaderboard[key].questionsAnswered += count;
+  saveLeaderboard();
+  return getTopLeaderboard();
+}
+
+function getTopLeaderboard(limit = 20) {
+  return Object.values(globalLeaderboard)
+    .sort((a, b) => b.questionsAnswered - a.questionsAnswered)
+    .slice(0, limit);
+}
+
 const app = express();
-app.get("/", (_req, res) => {
-  res.sendFile(path.join(__dirname, "index.html"));
+app.use(express.json());
+app.use(express.static(path.join(__dirname, "public")));
+
+// Leaderboard API endpoint
+app.get("/api/leaderboard", (_req, res) => {
+  res.json(getTopLeaderboard(50));
 });
 
-app.get("/logo.png", (_req, res) => {
-  res.sendFile(path.join(__dirname, "logo.png"));
+// Endpoint to record single/solo player questions
+app.post("/api/record-questions", (req, res) => {
+  const { name, count } = req.body;
+  if (!name || typeof count !== "number" || count <= 0) {
+    return res.status(400).json({ error: "Invalid payload" });
+  }
+  const updated = recordAnsweredQuestions(name, count);
+  io.emit("globalLeaderboardUpdate", updated);
+  res.json({ success: true });
 });
+
+app.get("*", (_req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
 
 const httpServer = http.createServer(app);
 const io = new Server(httpServer, { cors: { origin: "*" } });
@@ -89,6 +144,13 @@ function startQuestion(lobby){
 }
 function expireQuestion(lobby,index){
   if(!lobby.gameStarted || !lobby.question || lobby.question.questionIndex!==index) return;
+  
+  // Count as question answered for every player in lobby
+  for (const p of lobby.players.values()) {
+    recordAnsweredQuestions(p.name, 1);
+  }
+  io.emit("globalLeaderboardUpdate", getTopLeaderboard());
+
   broadcastLobby(lobby,"questionExpired",{questionIndex:index,correctAnswer:`${lobby.question.sign}${lobby.question.value}`});
   broadcastLeaderboard(lobby);
   lobby.timer=setTimeout(()=>startQuestion(lobby),650);
@@ -98,6 +160,11 @@ function processAnswer(lobby,p,msg){
   if(lobby.question.answers.has(p.id)) return;
   if(lobby.question.deadline && Date.now()>lobby.question.deadline) return;
   lobby.question.answers.add(p.id);
+  
+  // Increment site-wide answered questions count for this player
+  const updatedGlobal = recordAnsweredQuestions(p.name, 1);
+  io.emit("globalLeaderboardUpdate", updatedGlobal);
+
   const responseTime=(Date.now()-lobby.question.startedAt)/1000;
   const correct=msg.answer===lobby.question.value && msg.sign===lobby.question.sign;
   let points=0;
@@ -140,6 +207,9 @@ function disconnectPlayer(socket){
 }
 
 io.on("connection",socket=>{
+  // Send site-wide leaderboard upon connect
+  socket.emit("globalLeaderboardUpdate", getTopLeaderboard());
+
   socket.on("createLobby",({name,settings}={})=>{
     if(!validSettings(settings)) return socket.emit("error",{message:"Invalid multiplayer settings."});
     const code=lobbyCode(), pid=id();
@@ -176,7 +246,6 @@ io.on("connection",socket=>{
       lobby.questionIndex=0;
       for(const x of lobby.players.values()){x.score=0;x.streak=0;x.bestStreak=0;}
       const startPayload={settings:lobby.settings,totalQuestions:lobby.total===Infinity?null:lobby.total};
-      // Send the start packet explicitly to every socket in the lobby.
       lobby.io.in(lobby.code).emit("gameStart",startPayload);
       broadcastLeaderboard(lobby);
       socket.emit("startAccepted",{code:lobby.code});
