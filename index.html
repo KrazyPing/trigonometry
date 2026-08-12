@@ -9,6 +9,7 @@
 <link rel="icon" type="image/png" href="/favicon.png">
 
 <script src="/socket.io/socket.io.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
 <style>
 :root {
   --bg-main: #0e131f;
@@ -35,6 +36,17 @@ html, body {
   background-image: radial-gradient(circle at 50% 0%, rgba(99, 102, 241, 0.08) 0%, transparent 70%);
   background-attachment: fixed;
   color: var(--text-main);
+}
+
+/* Screen Shake Juice Effect */
+body.shake {
+  animation: shake 0.25s cubic-bezier(.36,.07,.19,.97) both;
+}
+@keyframes shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(4px, 0, 0); }
 }
 
 /* App Wrapper */
@@ -89,11 +101,13 @@ html, body {
   box-shadow: var(--shadow-soft);
   display: flex;
   flex-direction: column;
+  position: relative;
 }
 
 .header-section {
   text-align: center;
   margin-bottom: 20px;
+  position: relative;
 }
 
 .game-logo {
@@ -119,6 +133,32 @@ h1 {
   color: var(--text-muted);
   margin-top: 6px;
   font-size: 15px;
+}
+
+/* Header Settings Cog Button */
+.settings-cog-btn {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: rgba(23, 32, 51, 0.8);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  font-size: 20px;
+  transition: all 0.2s ease;
+  z-index: 5;
+}
+.settings-cog-btn:hover {
+  color: #fff;
+  background: #1e293b;
+  border-color: #a5b4fc;
+  transform: rotate(45deg);
 }
 
 /* Mode Tabs */
@@ -350,6 +390,7 @@ select:focus, input:focus {
 .mp-rank-badge { font-weight: 800; min-width: 24px; }
 .mp-score-points { font-weight: 800; color: #a5b4fc; }
 .mp-score-row.you { color: #60a5fa; font-weight: 800; }
+.mp-score-row.eliminated { opacity: 0.5; text-decoration: line-through; }
 
 /* Tables & Cheat Sheet Styling */
 .global-lb-table, .answers-table {
@@ -401,6 +442,7 @@ select:focus, input:focus {
   width: 100%;
   max-width: 900px;
   margin: auto;
+  position: relative;
 }
 .game.show {
   display: flex;
@@ -408,7 +450,7 @@ select:focus, input:focus {
 
 .top-bar {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(5, 1fr);
   gap: 12px;
   margin-bottom: 20px;
   width: 100%;
@@ -480,7 +522,7 @@ select:focus, input:focus {
 }
 .question { font-size: 56px; font-weight: 800; color: #fff; }
 
-.answer-container { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-bottom: 24px; width: 100%; }
+.answer-container { display: flex; flex-direction: column; align-items: center; gap: 16px; margin-bottom: 24px; width: 100%; position: relative; }
 .sign-toggle-btn {
   background: #172033;
   border: 2px solid var(--accent-indigo);
@@ -492,6 +534,7 @@ select:focus, input:focus {
   color: #a5b4fc;
   cursor: pointer;
   transition: all 0.15s;
+  position: relative;
 }
 .sign-toggle-btn.negative { background: var(--accent-rose); border-color: var(--accent-rose); color: #fff; }
 .choice-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; width: 100%; }
@@ -507,13 +550,56 @@ select:focus, input:focus {
   min-width: 100px;
   text-align: center;
   transition: all 0.15s;
+  position: relative;
 }
 .choice-btn:hover { background: var(--accent-indigo); border-color: var(--accent-indigo); color: #fff; }
+
+/* Keyboard Badge Overlay */
+.key-badge {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  font-size: 10px;
+  background: rgba(255, 255, 255, 0.15);
+  color: var(--text-muted);
+  padding: 2px 5px;
+  border-radius: 4px;
+  font-weight: bold;
+}
+
+/* Floating Juice Text Animation */
+.floating-juice {
+  position: absolute;
+  font-weight: 900;
+  font-size: 24px;
+  color: #34d399;
+  pointer-events: none;
+  animation: float-up 0.8s ease-out forwards;
+  z-index: 100;
+}
+@keyframes float-up {
+  0% { opacity: 1; transform: translateY(0) scale(1); }
+  100% { opacity: 0; transform: translateY(-40px) scale(1.2); }
+}
 
 .stop-btn { width: 100%; background: var(--accent-rose); color: #fff; border: none; margin-top: 12px; padding: 16px; font-size: 16px; font-weight: 800; border-radius: 12px; cursor: pointer; }
 .feedback { height: 35px; text-align: center; font-size: 20px; font-weight: 800; }
 .correct { color: #34d399; }
 .wrong { color: #f87171; }
+
+/* Spectator Mode Banner */
+.spectator-banner {
+  display: none;
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid #f87171;
+  color: #f87171;
+  padding: 12px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  text-align: center;
+  font-weight: 800;
+  width: 100%;
+}
 
 /* Results Modal */
 .results { display: none; text-align: center; width: 100%; max-width: 800px; margin: auto; }
@@ -522,6 +608,8 @@ select:focus, input:focus {
 .result-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px; margin: 25px 0; }
 .result-card { background: rgba(23, 32, 51, 0.8); border: 1px solid var(--border-color); border-radius: 14px; padding: 18px; }
 .result-number { font-size: 28px; font-weight: 800; color: #a5b4fc; }
+.analytics-box { background: rgba(15, 23, 42, 0.7); border: 1px solid var(--border-color); border-radius: 14px; padding: 18px; margin-bottom: 20px; text-align: left; }
+.analytics-box h4 { margin: 0 0 8px; color: #a5b4fc; }
 .back-btn { background: #475569; color: #fff; border: none; width: 100%; padding: 16px; font-weight: 800; font-size: 16px; border-radius: 12px; cursor: pointer; }
 
 /* Hidden Secret Admin Trigger */
@@ -537,8 +625,8 @@ select:focus, input:focus {
   z-index: 10;
 }
 
-/* Admin Modal Popup */
-.admin-modal {
+/* Settings Modal */
+.settings-modal, .admin-modal {
   display: none;
   position: fixed;
   top: 0; left: 0; width: 100vw; height: 100vh;
@@ -548,27 +636,48 @@ select:focus, input:focus {
   align-items: center;
   z-index: 100;
 }
-.admin-modal.show { display: flex; }
-.admin-box {
+.settings-modal.show, .admin-modal.show { display: flex; }
+.modal-box {
   background: #172033;
   border: 1px solid var(--border-color);
   padding: 25px;
   border-radius: 16px;
-  width: min(340px, 90vw);
+  width: min(380px, 90vw);
   box-shadow: 0 20px 40px rgba(0,0,0,0.8);
-  text-align: center;
 }
-.admin-box h3 { margin-top: 0; color: #fff; }
-.admin-box input { margin-bottom: 15px; }
-.admin-actions { display: flex; gap: 10px; }
-.admin-actions button { flex: 1; padding: 10px; border: none; border-radius: 8px; font-weight: bold; color: #fff; cursor: pointer; }
-.admin-submit-btn { background: var(--accent-indigo); }
-.admin-cancel-btn { background: #64748b; }
-.remove-btn { background: var(--accent-rose); font-size: 12px; padding: 5px 10px; border-radius: 6px; cursor: pointer; border: none; color: #fff; }
+.modal-box h3 { margin-top: 0; color: #fff; text-align: center; }
+.setting-toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border-color);
+  font-weight: 600;
+}
+.setting-toggle-row:last-child { border-bottom: none; }
+.modal-close-btn {
+  width: 100%;
+  background: var(--accent-indigo);
+  color: #fff;
+  border: none;
+  padding: 12px;
+  font-weight: 800;
+  border-radius: 10px;
+  margin-top: 16px;
+  cursor: pointer;
+}
+
+/* Toggle Switch Styling */
+.switch { position: relative; display: inline-block; width: 44px; height: 24px; }
+.switch input { opacity: 0; width: 0; height: 0; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #334155; transition: .2s; border-radius: 24px; }
+.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .2s; border-radius: 50%; }
+input:checked + .slider { background-color: var(--accent-emerald); }
+input:checked + .slider:before { transform: translateX(20px); }
 
 @media(max-width: 768px){
   .setup-grid, .pattern-card-grid { grid-template-columns: 1fr; }
-  .top-bar { grid-template-columns: repeat(2, 1fr); }
+  .top-bar { grid-template-columns: repeat(3, 1fr); }
   .question { font-size: 40px; }
   .result-grid { grid-template-columns: 1fr; }
   .full-screen-card { padding: 18px; }
@@ -602,6 +711,7 @@ select:focus, input:focus {
     <!-- Setup Screen -->
     <div id="setup">
       <div class="header-section">
+        <button class="settings-cog-btn" onclick="openSettingsModal()" title="Audio & Visual Settings">⚙️</button>
         <img src="/logo.png" class="game-logo" alt="Game Logo">
         <h1>⚡ Trig Speed Challenge</h1>
         <div class="subtitle">Master trigonometry with fast-paced solo & multiplayer modes</div>
@@ -725,7 +835,7 @@ select:focus, input:focus {
         </table>
       </div>
 
-      <!-- Settings & Controls Container (Hidden on Leaderboard & Answers) -->
+      <!-- Settings & Controls Container -->
       <div id="gameControlsContainer">
         <div class="setup-grid">
           <div class="setting" style="grid-column: 1 / -1;">
@@ -762,6 +872,15 @@ select:focus, input:focus {
               <option value="negative">Negative Only</option>
             </select>
           </div>
+          <div class="setting">
+            <label>Lives / Hearts (Multiplayer / Solo)</label>
+            <select id="livesMode">
+              <option value="infinite">Infinite (Standard)</option>
+              <option value="1">1 Life (Sudden Death)</option>
+              <option value="3" selected>3 Lives</option>
+              <option value="5">5 Lives</option>
+            </select>
+          </div>
 
           <div class="setting" style="grid-column: 1 / -1;">
             <label>Choose Trig Functions</label>
@@ -789,8 +908,13 @@ select:focus, input:focus {
         <div id="mpScoreRows"></div>
       </div>
 
+      <div id="spectatorBanner" class="spectator-banner">
+        👀 SPECTATOR MODE — You ran out of lives! Watching remaining players...
+      </div>
+
       <div class="top-bar">
         <div class="stat"><div class="stat-title">Score</div><div class="stat-value" id="score">0</div></div>
+        <div class="stat"><div class="stat-title">Lives</div><div class="stat-value" id="livesDisplay">❤️❤️❤️</div></div>
         <div class="stat"><div class="stat-title">Streak</div><div class="stat-value" id="streak">0</div></div>
         <div class="stat"><div class="stat-title">Best Streak</div><div class="stat-value" id="bestStreak">0</div></div>
         <div class="stat"><div class="stat-title">Question</div><div class="stat-value" id="questionNumber">1/20</div></div>
@@ -806,8 +930,8 @@ select:focus, input:focus {
 
       <div class="question-box"><div class="question" id="question">sin(π/3)</div></div>
 
-      <div class="answer-container">
-        <button id="signToggleBtn" class="sign-toggle-btn" onclick="toggleSign()">+</button>
+      <div class="answer-container" id="answerContainer">
+        <button id="signToggleBtn" class="sign-toggle-btn" onclick="toggleSign()">+<span class="key-badge">Space</span></button>
         <div id="choiceGrid" class="choice-grid"></div>
       </div>
 
@@ -818,6 +942,12 @@ select:focus, input:focus {
     <!-- Results View -->
     <div id="results" class="results">
       <h2>🏁 Game Over!</h2>
+      
+      <div class="analytics-box" id="analyticsBox">
+        <h4>📊 Game Performance Insights</h4>
+        <div id="analyticsText">Calculating stats...</div>
+      </div>
+
       <div class="result-grid">
         <div class="result-card"><div>Score</div><div class="result-number" id="finalScore">0</div></div>
         <div class="result-card"><div>Accuracy</div><div class="result-number" id="finalAccuracy">0%</div></div>
@@ -838,14 +968,34 @@ select:focus, input:focus {
   </div>
 </div>
 
+<!-- Audio & Juice Settings Modal -->
+<div id="settingsModal" class="settings-modal">
+  <div class="modal-box">
+    <h3>⚙️ Game Preferences</h3>
+    <div class="setting-toggle-row">
+      <span>🔊 Sound Effects (SFX)</span>
+      <label class="switch"><input type="checkbox" id="sfxToggle" checked onchange="savePreferences()"><span class="slider"></span></label>
+    </div>
+    <div class="setting-toggle-row">
+      <span>✨ Visual Juice Effects</span>
+      <label class="switch"><input type="checkbox" id="juiceToggle" checked onchange="savePreferences()"><span class="slider"></span></label>
+    </div>
+    <div class="setting-toggle-row">
+      <span>⌨️ Show Keyboard Shortcuts</span>
+      <label class="switch"><input type="checkbox" id="hotkeysToggle" checked onchange="savePreferences()"><span class="slider"></span></label>
+    </div>
+    <button class="modal-close-btn" onclick="closeSettingsModal()">SAVE & CLOSE</button>
+  </div>
+</div>
+
 <!-- Admin Password Modal -->
 <div id="adminModal" class="admin-modal">
-  <div class="admin-box">
+  <div class="modal-box" style="text-align:center;">
     <h3>🔒 Admin Mode</h3>
     <input id="modalAdminKey" type="password" placeholder="Enter Admin Password">
-    <div class="admin-actions">
-      <button class="admin-submit-btn" onclick="submitAdminKey()">SUBMIT</button>
-      <button class="admin-cancel-btn" onclick="closeAdminModal()">CANCEL</button>
+    <div style="display:flex;gap:10px;margin-top:12px;">
+      <button style="flex:1;background:var(--accent-indigo);color:#fff;border:none;padding:10px;border-radius:8px;font-weight:bold;cursor:pointer;" onclick="submitAdminKey()">SUBMIT</button>
+      <button style="flex:1;background:#64748b;color:#fff;border:none;padding:10px;border-radius:8px;font-weight:bold;cursor:pointer;" onclick="closeAdminModal()">CANCEL</button>
     </div>
   </div>
 </div>
@@ -874,6 +1024,80 @@ let selectedAnswer = "";
 let adminKey = localStorage.getItem("trigAdminKey") || "";
 let timerVisible = true;
 
+/* Sound & Visual Settings */
+let soundEnabled = localStorage.getItem("trig_sfx") !== "false";
+let juiceEnabled = localStorage.getItem("trig_juice") !== "false";
+let hotkeysEnabled = localStorage.getItem("trig_hotkeys") !== "false";
+
+document.getElementById("sfxToggle").checked = soundEnabled;
+document.getElementById("juiceToggle").checked = juiceEnabled;
+document.getElementById("hotkeysToggle").checked = hotkeysEnabled;
+
+function savePreferences() {
+  soundEnabled = document.getElementById("sfxToggle").checked;
+  juiceEnabled = document.getElementById("juiceToggle").checked;
+  hotkeysEnabled = document.getElementById("hotkeysToggle").checked;
+
+  localStorage.setItem("trig_sfx", soundEnabled);
+  localStorage.setItem("trig_juice", juiceEnabled);
+  localStorage.setItem("trig_hotkeys", hotkeysEnabled);
+
+  document.querySelectorAll(".key-badge").forEach(el => el.style.display = hotkeysEnabled ? "inline-block" : "none");
+}
+
+/* Web Audio Synthesizer */
+const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+function playSound(type) {
+  if (!soundEnabled || !audioCtx) return;
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.connect(gain);
+  gain.connect(audioCtx.destination);
+
+  const now = audioCtx.currentTime;
+
+  if (type === 'correct') {
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(587.33, now); // D5
+    osc.frequency.exponentialRampToValueAtTime(880, now + 0.15); // A5
+    gain.gain.setValueAtTime(0.15, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+    osc.start(now); osc.stop(now + 0.15);
+  } else if (type === 'wrong') {
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(160, now);
+    osc.frequency.exponentialRampToValueAtTime(90, now + 0.2);
+    gain.gain.setValueAtTime(0.2, now);
+    gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+    osc.start(now); osc.stop(now + 0.2);
+  } else if (type === 'fanfare') {
+    if (typeof confetti === "function" && juiceEnabled) confetti({ particleCount: 100, spread: 70, origin: { y: 0.6 } });
+  }
+}
+
+function triggerJuiceEffect(btn, text) {
+  if (!juiceEnabled) return;
+  const floatEl = document.createElement("div");
+  floatEl.className = "floating-juice";
+  floatEl.textContent = text;
+  const rect = btn.getBoundingClientRect();
+  floatEl.style.left = `${rect.left + rect.width / 2 - 20}px`;
+  floatEl.style.top = `${rect.top - 10}px`;
+  document.body.appendChild(floatEl);
+  setTimeout(() => floatEl.remove(), 800);
+}
+
+function triggerScreenShake() {
+  if (!juiceEnabled) return;
+  document.body.classList.add("shake");
+  setTimeout(() => document.body.classList.remove("shake"), 250);
+}
+
+function openSettingsModal() { document.getElementById("settingsModal").classList.add("show"); }
+function closeSettingsModal() { document.getElementById("settingsModal").classList.remove("show"); }
+
 let appMode = "solo";
 let mpSocket = null;
 let mpRole = null;
@@ -884,6 +1108,12 @@ let mpQuestion = null;
 let mpAnswered = false;
 let mpDeadline = 0;
 let mpTimer = null;
+
+let playerLives = Infinity;
+let maxLives = Infinity;
+let isSpectating = false;
+let funcStats = {};
+let fastestTime = Infinity;
 
 // Persistent Name Syncing
 document.getElementById("soloName").value = localStorage.getItem("trigPlayerName") || "";
@@ -910,7 +1140,7 @@ function toggleTimerVisibility() {
 function toggleSign() {
   selectedSign = selectedSign === "+" ? "-" : "+";
   const btn = document.getElementById("signToggleBtn");
-  btn.textContent = selectedSign === "+" ? "+" : "−";
+  btn.innerHTML = (selectedSign === "+" ? "+" : "−") + (hotkeysEnabled ? '<span class="key-badge">Space</span>' : '');
   btn.classList.toggle("negative", selectedSign === "-");
 }
 
@@ -921,17 +1151,18 @@ function renderChoices(trig) {
   selectedSign = "+";
   
   const signBtn = document.getElementById("signToggleBtn");
-  signBtn.textContent = "+";
+  signBtn.innerHTML = "+" + (hotkeysEnabled ? '<span class="key-badge">Space</span>' : '');
   signBtn.classList.remove("negative");
 
   const choices = ANSWERS_BY_TRIG[trig] || [];
-  choices.forEach(val => {
+  choices.forEach((val, idx) => {
     const btn = document.createElement("button");
     btn.className = "choice-btn";
-    btn.textContent = val;
+    btn.innerHTML = val + (hotkeysEnabled ? `<span class="key-badge">${idx + 1}</span>` : '');
     btn.onclick = () => {
+      if (isSpectating) return;
       selectedAnswer = val;
-      submitAnswer();
+      submitAnswer(btn);
     };
     grid.appendChild(btn);
   });
@@ -948,7 +1179,6 @@ function selectMode(mode){
   document.getElementById("globalLbPanel").classList.toggle("show", mode==="global");
   document.getElementById("answersPanel").classList.toggle("show", mode==="answers");
 
-  // Hides the setup settings grid and start button if on Leaderboard or Answers tabs
   const showControls = (mode === "solo" || mode === "multi");
   document.getElementById("gameControlsContainer").style.display = showControls ? "block" : "none";
   
@@ -1097,6 +1327,14 @@ function connectMultiplayer(){
     applyMultiplayerSettings(msg.settings);
     totalGameQuestions = msg.totalQuestions === null ? Infinity : msg.totalQuestions;
     score=streak=bestStreak=correctAnswers=totalQuestions=questionIndex=totalResponseTime=0;
+    
+    const livesChoice = document.getElementById("livesMode").value;
+    playerLives = livesChoice === "infinite" ? Infinity : parseInt(livesChoice, 10);
+    maxLives = playerLives;
+    isSpectating = false;
+    document.getElementById("spectatorBanner").style.display = "none";
+    document.getElementById("answerContainer").style.opacity = "1";
+
     gameActive=true;
     document.getElementById("setup").style.display="none";
     document.getElementById("results").classList.remove("show");
@@ -1131,14 +1369,27 @@ function connectMultiplayer(){
     if(msg.playerId===mpPlayerId){
       mpAnswered=true;
       if(msg.correct){
+        playSound('correct');
         score=msg.score; streak=msg.streak; bestStreak=msg.bestStreak;
         correctAnswers++;
         document.getElementById("feedback").textContent=`✓ Correct! +${msg.points}`;
         document.getElementById("feedback").className="feedback correct";
       }else{
+        playSound('wrong');
+        triggerScreenShake();
         streak=msg.streak;
         document.getElementById("feedback").textContent=`✗ Correct answer: ${msg.correctAnswer}`;
         document.getElementById("feedback").className="feedback wrong";
+        
+        if (playerLives !== Infinity) {
+          playerLives--;
+          if (playerLives <= 0) {
+            playerLives = 0;
+            isSpectating = true;
+            document.getElementById("spectatorBanner").style.display = "block";
+            document.getElementById("answerContainer").style.opacity = "0.4";
+          }
+        }
       }
       totalQuestions++;
       totalResponseTime+=msg.responseTime||0;
@@ -1146,20 +1397,33 @@ function connectMultiplayer(){
     }
   });
   mpSocket.on("questionExpired", msg=>{
-    if(!mpAnswered){
+    if(!mpAnswered && !isSpectating){
       mpAnswered=true;
+      playSound('wrong');
+      triggerScreenShake();
       document.getElementById("feedback").textContent=`⏰ Time! Answer: ${msg.correctAnswer}`;
       document.getElementById("feedback").className="feedback wrong";
       totalQuestions++;
       streak=0;
+      if (playerLives !== Infinity) {
+        playerLives--;
+        if (playerLives <= 0) {
+          playerLives = 0;
+          isSpectating = true;
+          document.getElementById("spectatorBanner").style.display = "block";
+          document.getElementById("answerContainer").style.opacity = "0.4";
+        }
+      }
       updateStats();
     }
   });
   mpSocket.on("gameOver", msg=>{
     clearInterval(mpTimer);
     gameActive=false;
+    playSound('fanfare');
     document.getElementById("game").classList.remove("show");
     document.getElementById("results").classList.add("show");
+    document.getElementById("mpScoreboard").classList.remove("show");
     document.getElementById("mpFinal").style.display="block";
     const me=(msg.rankings||[]).find(p=>p.id===mpPlayerId);
     document.getElementById("finalScore").textContent=me?.score ?? 0;
@@ -1167,6 +1431,9 @@ function connectMultiplayer(){
     document.getElementById("finalCorrect").textContent=correctAnswers;
     document.getElementById("finalAccuracy").textContent=totalQuestions?Math.round(correctAnswers/totalQuestions*100)+"%":"0%";
     document.getElementById("finalTime").textContent=totalQuestions?(totalResponseTime/totalQuestions).toFixed(2)+"s":"0s";
+    
+    renderAnalytics();
+
     document.getElementById("mpRanking").innerHTML=(msg.rankings||[]).map((p,i)=>
       `<div class="mp-rank-row"><span>#${i+1} ${p.host?"👑 ":""}${escapeMp(p.name)}${p.id===mpPlayerId?" <b>(YOU)</b>":""}</span><b>${p.score}</b></div>`
     ).join("");
@@ -1296,6 +1563,15 @@ if(!timeLimit||timeLimit<=0){alert("Enter a valid amount of time.");return;}
 const mode=document.getElementById("gameMode").value;
 totalGameQuestions=mode==="ten"?10:mode==="fifty"?50:mode==="classic"?20:Infinity;
 score=streak=bestStreak=correctAnswers=totalQuestions=questionIndex=totalResponseTime=0;
+funcStats = {}; fastestTime = Infinity;
+
+const livesChoice = document.getElementById("livesMode").value;
+playerLives = livesChoice === "infinite" ? Infinity : parseInt(livesChoice, 10);
+maxLives = playerLives;
+isSpectating = false;
+document.getElementById("spectatorBanner").style.display = "none";
+document.getElementById("answerContainer").style.opacity = "1";
+
 gameActive=true;
 document.getElementById("setup").style.display="none";
 document.getElementById("results").classList.remove("show");
@@ -1305,7 +1581,7 @@ updateStats(); nextQuestion();
 
 function nextQuestion(){
 if(!gameActive)return;
-if(questionIndex>=totalGameQuestions){endGame();return;}
+if(questionIndex>=totalGameQuestions || playerLives <= 0){endGame();return;}
 const difficulty=document.getElementById("difficulty").value;
 const negativeMode=document.getElementById("negativeMode").value;
 const trig=selectedTrigs[Math.floor(Math.random()*selectedTrigs.length)];
@@ -1343,28 +1619,44 @@ if(remaining<=0){clearInterval(timerInterval);timeOut();}
 
 function timeOut(){
 if(!gameActive)return;
+playSound('wrong');
+triggerScreenShake();
 streak=0;totalQuestions++;
-document.getElementById("feedback").textContent=`⏰ Time! Answer: ${currentQuestion.sign}${currentQuestion.value}`;
-document.getElementById("feedback").className="feedback wrong";
-updateStats();setTimeout(nextQuestion,650);
+if(!funcStats[currentQuestion.trig]) funcStats[currentQuestion.trig] = { total:0, wrong:0 };
+funcStats[currentQuestion.trig].total++; funcStats[currentQuestion.trig].wrong++;
+
+if (playerLives !== Infinity) {
+  playerLives--;
 }
 
-function submitAnswer(){
+document.getElementById("feedback").textContent=`⏰ Time! Answer: ${currentQuestion.sign}${currentQuestion.value}`;
+document.getElementById("feedback").className="feedback wrong";
+updateStats();
+if (playerLives <= 0) { endGame(); return; }
+setTimeout(nextQuestion,650);
+}
+
+function submitAnswer(btnEl){
 if(appMode==="multi"){
   submitMultiplayerAnswer();
   return;
 }
-if(!gameActive||!currentQuestion)return;
+if(!gameActive||!currentQuestion||isSpectating)return;
 clearInterval(timerInterval);
 
 if(!selectedAnswer){startTimer();return;}
 
 const responseTime=(performance.now()-questionStart)/1000;
+fastestTime = Math.min(fastestTime, responseTime);
 totalResponseTime+=responseTime;totalQuestions++;
+
+if(!funcStats[currentQuestion.trig]) funcStats[currentQuestion.trig] = { total:0, wrong:0 };
+funcStats[currentQuestion.trig].total++;
 
 const correct = selectedAnswer === currentQuestion.value && selectedSign === currentQuestion.sign;
 
 if(correct){
+  playSound('correct');
   recordSoloAnsweredQuestion();
   correctAnswers++;streak++;bestStreak=Math.max(bestStreak,streak);
   let points=100;
@@ -1373,18 +1665,25 @@ if(correct){
     else if(responseTime<timeLimit*.5)points+=25;
   }
   points+=streak*5;score+=points;
+  if (btnEl) triggerJuiceEffect(btnEl, `+${points}`);
   document.getElementById("feedback").textContent=`✓ Correct! +${points}`;
   document.getElementById("feedback").className="feedback correct";
 }else{
+  playSound('wrong');
+  triggerScreenShake();
+  funcStats[currentQuestion.trig].wrong++;
   streak=0;
+  if (playerLives !== Infinity) playerLives--;
   document.getElementById("feedback").textContent=`✗ Correct answer: ${currentQuestion.sign}${currentQuestion.value}`;
   document.getElementById("feedback").className="feedback wrong";
 }
-updateStats();setTimeout(nextQuestion,500);
+updateStats();
+if (playerLives <= 0) { setTimeout(endGame, 500); return; }
+setTimeout(nextQuestion,500);
 }
 
 function submitMultiplayerAnswer(){
-  if(!gameActive||!mpSocket||!mpQuestion||mpAnswered)return;
+  if(!gameActive||!mpSocket||!mpQuestion||mpAnswered||isSpectating)return;
   if(!selectedAnswer)return;
   if(mpDeadline && Date.now()>mpDeadline)return;
   mpAnswered=true;
@@ -1393,18 +1692,34 @@ function submitMultiplayerAnswer(){
 
 function stopGame(){if(appMode==="multi"){leaveMultiplayerLobby();gameActive=false;clearInterval(timerInterval);document.getElementById("game").classList.remove("show");document.getElementById("setup").style.display="block";selectMode("multi");return;}if(!gameActive)return;gameActive=false;clearInterval(timerInterval);endGame();}
 
+function renderAnalytics() {
+  let weakest = null, maxWrong = -1;
+  for (const [trig, data] of Object.entries(funcStats)) {
+    if (data.wrong > maxWrong) { maxWrong = data.wrong; weakest = trig; }
+  }
+  const analyticsEl = document.getElementById("analyticsText");
+  const fastestStr = fastestTime === Infinity ? "N/A" : `${fastestTime.toFixed(2)}s`;
+  const weakStr = (weakest && maxWrong > 0) ? `⚠️ You struggled most with <b>${weakest}(x)</b> (${maxWrong} missed).` : "🎉 Excellent accuracy across all trig functions!";
+  analyticsEl.innerHTML = `⚡ Fastest response: <b>${fastestStr}</b><br>${weakStr}`;
+}
+
 function endGame(){
 gameActive=false;clearInterval(timerInterval);
+playSound('fanfare');
 document.getElementById("game").classList.remove("show");
 document.getElementById("results").classList.add("show");
 document.getElementById("mpScoreboard").classList.remove("show");
-document.getElementById("mpFinal").style.display="block";
-const me=(msg.rankings||[]).find(p=>p.id===mpPlayerId);
-document.getElementById("finalScore").textContent=me?.score ?? 0;
-document.getElementById("finalStreak").textContent=me?.bestStreak ?? 0;
+
+const accuracy=totalQuestions?Math.round(correctAnswers/totalQuestions*100):0;
+const avg=totalQuestions?totalResponseTime/totalQuestions:0;
+document.getElementById("finalScore").textContent=score;
+document.getElementById("finalAccuracy").textContent=accuracy+"%";
+document.getElementById("finalStreak").textContent=bestStreak;
 document.getElementById("finalCorrect").textContent=correctAnswers;
-document.getElementById("finalAccuracy").textContent=totalQuestions?Math.round(correctAnswers/totalQuestions*100)+"%":"0%";
-document.getElementById("finalTime").textContent=totalQuestions?(totalResponseTime/totalQuestions).toFixed(2)+"s":"0s";
+document.getElementById("finalTime").textContent=avg.toFixed(2)+"s";
+
+renderAnalytics();
+
 let pb=Number(localStorage.getItem("trigPersonalBest")||0);
 if(score>pb){pb=score;localStorage.setItem("trigPersonalBest",pb);}
 document.getElementById("personalBest").textContent=pb;
@@ -1415,6 +1730,13 @@ document.getElementById("score").textContent=score;
 document.getElementById("streak").textContent=streak;
 document.getElementById("bestStreak").textContent=bestStreak;
 document.getElementById("questionNumber").textContent=totalGameQuestions===Infinity?questionIndex:`${questionIndex}/${totalGameQuestions}`;
+
+const livesEl = document.getElementById("livesDisplay");
+if (playerLives === Infinity) {
+  livesEl.textContent = "∞";
+} else {
+  livesEl.textContent = "❤️".repeat(playerLives) + "🖤".repeat(Math.max(0, maxLives - playerLives));
+}
 }
 
 function backToSetup(){
@@ -1431,13 +1753,22 @@ if(appMode === "multi") {
 }
 }
 
+/* Keyboard Hotkey Listeners */
 document.addEventListener("keydown",e=>{
 if(e.key==="Enter") {
   const modal = document.getElementById("adminModal");
   if(modal.classList.contains("show")) submitAdminKey();
 }
-if(!gameActive)return;
+if(!gameActive || isSpectating)return;
 if(e.key==="Escape")stopGame();
+if(e.key===" " || e.key==="Shift") { toggleSign(); }
+if(["1","2","3","4","5"].includes(e.key)) {
+  const idx = parseInt(e.key, 10) - 1;
+  const choices = document.querySelectorAll(".choice-btn");
+  if (choices[idx]) {
+    choices[idx].click();
+  }
+}
 });
 
 // Load leaderboard on initial boot
