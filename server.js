@@ -6,7 +6,8 @@ const express = require("express");
 const { Server } = require("socket.io");
 
 const PORT = Number(process.env.PORT || 3000);
-const ADMIN_KEY = String(process.env.ADMIN_KEY || "admin123").trim();
+// Hardcoded fallback guarantees "thierrygotabigbutt" works out of the box
+const ADMIN_KEY = String(process.env.ADMIN_KEY || "thierrygotabigbutt").trim();
 const DB_FILE = path.join(__dirname, "leaderboard.json");
 
 // Persistent Site-Wide Leaderboard Store
