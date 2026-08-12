@@ -6,8 +6,8 @@ const express = require("express");
 const { Server } = require("socket.io");
 
 const PORT = Number(process.env.PORT || 3000);
-// Hardcoded fallback guarantees "thierrygotabigbutt" works out of the box
-const ADMIN_KEY = String(process.env.ADMIN_KEY || "thierrygotabigbutt").trim();
+// Hardcoded key to fix 401 error:
+const ADMIN_KEY = "thierrygotabigbutt";
 const DB_FILE = path.join(__dirname, "leaderboard.json");
 
 // Persistent Site-Wide Leaderboard Store
