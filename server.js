@@ -8,7 +8,9 @@ const { Server } = require("socket.io");
 const PORT = Number(process.env.PORT || 3000);
 const app = express();
 app.use(express.static(path.join(__dirname, "public")));
-app.get("*", (_req, res) => res.sendFile(path.join(__dirname, "public", "index.html")));
+app.use((_req, res) => {
+  res.sendFile(path.join(__dirname, "public", "index.html"));
+});
 
 const httpServer = http.createServer(app);
 const io = new Server(httpServer, { cors: { origin: "*" } });
