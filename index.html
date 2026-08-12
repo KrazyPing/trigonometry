@@ -99,10 +99,13 @@ html, body {
 .game-logo {
   display: block;
   width: min(100%, 200px);
-  height: auto;
-  object-fit: contain;
+  height: min(100%, 200px);
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
   margin: 0 auto 12px;
   background: transparent;
+  clip-path: circle(50% at 50% 50%);
+  border-radius: 50%;
 }
 
 h1 {
@@ -226,7 +229,7 @@ select:focus, input:focus {
 }
 
 /* Panels */
-.mp-panel, .global-lb-panel {
+.mp-panel, .global-lb-panel, .answers-panel {
   display: none;
   background: rgba(23, 32, 51, 0.6);
   padding: 20px;
@@ -234,7 +237,7 @@ select:focus, input:focus {
   border: 1px solid var(--border-color);
   margin-bottom: 20px;
 }
-.mp-panel.show, .global-lb-panel.show { display: block; }
+.mp-panel.show, .global-lb-panel.show, .answers-panel.show { display: block; }
 .mp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .mp-actions { display: flex; gap: 10px; margin-top: 12px; }
 .mp-actions button { flex: 1; padding: 12px; border-radius: 8px; border: none; font-weight: bold; color: #fff; cursor: pointer; }
@@ -259,19 +262,45 @@ select:focus, input:focus {
   margin: 10px 0;
 }
 
-/* Leaderboard Table */
-.global-lb-table {
+/* Tables & Cheat Sheet Styling */
+.global-lb-table, .answers-table {
   width: 100%;
   border-collapse: collapse;
   margin-top: 12px;
 }
-.global-lb-table th, .global-lb-table td {
+.global-lb-table th, .global-lb-table td,
+.answers-table th, .answers-table td {
   padding: 12px 10px;
   text-align: left;
   border-bottom: 1px solid var(--border-color);
   font-size: 15px;
 }
-.global-lb-table th { color: var(--text-muted); font-size: 12px; text-transform: uppercase; }
+.global-lb-table th, .answers-table th { color: var(--text-muted); font-size: 12px; text-transform: uppercase; }
+
+.pattern-card-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  margin-top: 16px;
+}
+.pattern-card {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 16px;
+}
+.pattern-card h4 {
+  margin: 0 0 8px;
+  color: #a5b4fc;
+  font-size: 16px;
+}
+.pattern-card p, .pattern-card ul {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
 
 /* Gameplay View — PERFECTLY CENTERED ON Y-AXIS */
 .game {
@@ -413,11 +442,13 @@ select:focus, input:focus {
 .remove-btn { background: var(--accent-rose); font-size: 12px; padding: 5px 10px; border-radius: 6px; cursor: pointer; border: none; color: #fff; }
 
 @media(max-width: 768px){
-  .setup-grid { grid-template-columns: 1fr; }
+  .setup-grid, .pattern-card-grid { grid-template-columns: 1fr; }
   .top-bar { grid-template-columns: repeat(2, 1fr); }
   .question { font-size: 40px; }
   .result-grid { grid-template-columns: 1fr; }
   .full-screen-card { padding: 18px; }
+  .mode-tabs { flex-wrap: wrap; }
+  .mode-tab { flex: 1 1 45%; }
 }
 </style>
 </head>
@@ -454,6 +485,7 @@ select:focus, input:focus {
         <button id="soloModeTab" class="mode-tab active" onclick="selectMode('solo')">🎮 SOLO</button>
         <button id="multiModeTab" class="mode-tab" onclick="selectMode('multi')">👥 MULTIPLAYER</button>
         <button id="globalLbTab" class="mode-tab" onclick="selectMode('global')">🌐 LEADERBOARD</button>
+        <button id="answersTab" class="mode-tab" onclick="selectMode('answers')">📚 ANSWERS</button>
       </div>
 
       <div id="mpPanel" class="mp-panel">
@@ -494,6 +526,75 @@ select:focus, input:focus {
           </thead>
           <tbody id="globalLbBody">
             <tr><td colspan="3">Loading leaderboard...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Answers & Family Patterns Panel -->
+      <div id="answersPanel" class="answers-panel">
+        <h3 style="margin-top:0; color:#a5b4fc;">📐 Unit Circle Cheat Sheet & Family Patterns</h3>
+        
+        <div class="pattern-card-grid">
+          <div class="pattern-card">
+            <h4>🌟 ASTC Quadrant Rule (Signs)</h4>
+            <ul>
+              <li><b>Q1 (All):</b> All trig functions are Positive</li>
+              <li><b>Q2 (Students):</b> Only Sin / Csc are Positive</li>
+              <li><b>Q3 (Take):</b> Only Tan / Cot are Positive</li>
+              <li><b>Q4 (Calculus):</b> Only Cos / Sec are Positive</li>
+            </ul>
+          </div>
+          
+          <div class="pattern-card">
+            <h4>🔄 Reciprocal Family Patterns</h4>
+            <ul>
+              <li><b>Csc(x)</b> = 1 / Sin(x)</li>
+              <li><b>Sec(x)</b> = 1 / Cos(x)</li>
+              <li><b>Cot(x)</b> = 1 / Tan(x) = Cos(x) / Sin(x)</li>
+              <li><b>Tan(x)</b> = Sin(x) / Cos(x)</li>
+            </ul>
+          </div>
+
+          <div class="pattern-card">
+            <h4>⚡ Standard Angle Families</h4>
+            <ul>
+              <li><b>π/6 (30°) Family:</b> Sin=1/2, Cos=√3/2, Tan=√3/3</li>
+              <li><b>π/4 (45°) Family:</b> Sin=√2/2, Cos=√2/2, Tan=1</li>
+              <li><b>π/3 (60°) Family:</b> Sin=√3/2, Cos=1/2, Tan=√3</li>
+            </ul>
+          </div>
+
+          <div class="pattern-card">
+            <h4>📍 Quadrantal Angles</h4>
+            <ul>
+              <li><b>0 / 2π:</b> Sin=0, Cos=1, Tan=0, Sec=1, Csc=und</li>
+              <li><b>π/2 (90°):</b> Sin=1, Cos=0, Tan=und, Sec=und</li>
+              <li><b>π (180°):</b> Sin=0, Cos=-1, Tan=0, Sec=-1</li>
+              <li><b>3π/2 (270°):</b> Sin=-1, Cos=0, Tan=und, Sec=und</li>
+            </ul>
+          </div>
+        </div>
+
+        <h4 style="margin-top: 24px; color:#a5b4fc;">📋 Complete First-Quadrant Reference Table</h4>
+        <table class="answers-table">
+          <thead>
+            <tr>
+              <th>Angle (Rad)</th>
+              <th>Degree</th>
+              <th>sin</th>
+              <th>cos</th>
+              <th>tan</th>
+              <th>sec</th>
+              <th>csc</th>
+              <th>cot</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td><b>0</b></td><td>0°</td><td>0</td><td>1</td><td>0</td><td>1</td><td>undefined</td><td>undefined</td></tr>
+            <tr><td><b>π/6</b></td><td>30°</td><td>1/2</td><td>√3/2</td><td>√3/3</td><td>2√3/3</td><td>2</td><td>√3</td></tr>
+            <tr><td><b>π/4</b></td><td>45°</td><td>√2/2</td><td>√2/2</td><td>1</td><td>√2</td><td>√2</td><td>1</td></tr>
+            <tr><td><b>π/3</b></td><td>60°</td><td>√3/2</td><td>1/2</td><td>√3</td><td>2</td><td>2√3/3</td><td>√3/3</td></tr>
+            <tr><td><b>π/2</b></td><td>90°</td><td>1</td><td>0</td><td>undefined</td><td>undefined</td><td>1</td><td>0</td></tr>
           </tbody>
         </table>
       </div>
@@ -693,9 +794,11 @@ function selectMode(mode){
   document.getElementById("soloModeTab").classList.toggle("active", mode==="solo");
   document.getElementById("multiModeTab").classList.toggle("active", mode==="multi");
   document.getElementById("globalLbTab").classList.toggle("active", mode==="global");
+  document.getElementById("answersTab").classList.toggle("active", mode==="answers");
   
   document.getElementById("mpPanel").classList.toggle("show", mode==="multi");
   document.getElementById("globalLbPanel").classList.toggle("show", mode==="global");
+  document.getElementById("answersPanel").classList.toggle("show", mode==="answers");
   
   if(mode==="multi" || mode==="global"){
     connectMultiplayer();
