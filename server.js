@@ -70,8 +70,8 @@ app.post("/api/record-questions", (req, res) => {
   res.json({ success: true });
 });
 
-// Compatible wild-card route for Express 5+
-app.get("(.*)", (_req, res) => {
+// Express 5+ wildcard route fallback
+app.get("/{*splat}", (_req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
