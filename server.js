@@ -4,60 +4,66 @@ const fs = require("fs");
 const crypto = require("crypto");
 const express = require("express");
 const { Server } = require("socket.io");
+const Redis = require("ioredis");
 
 const PORT = Number(process.env.PORT || 3000);
-// Hardcoded key to fix 401 error:
 const ADMIN_KEY = "thierrygotabigbutt";
+
+// Connects to Upstash Redis using the REDIS_URL environment variable on Render
+const redis = process.env.REDIS_URL ? new Redis(process.env.REDIS_URL) : null;
 const DB_FILE = path.join(__dirname, "leaderboard.json");
+let localLeaderboard = {};
 
-// Persistent Site-Wide Leaderboard Store
-let globalLeaderboard = {};
-
-if (fs.existsSync(DB_FILE)) {
-  try {
-    globalLeaderboard = JSON.parse(fs.readFileSync(DB_FILE, "utf8"));
-  } catch (err) {
-    console.error("Error loading leaderboard file:", err);
-    globalLeaderboard = {};
-  }
+if (!redis && fs.existsSync(DB_FILE)) {
+  try { localLeaderboard = JSON.parse(fs.readFileSync(DB_FILE, "utf8")); }
+  catch (e) { localLeaderboard = {}; }
 }
 
-function saveLeaderboard() {
-  try {
-    fs.writeFileSync(DB_FILE, JSON.stringify(globalLeaderboard, null, 2));
-  } catch (err) {
-    console.error("Error saving leaderboard file:", err);
-  }
-}
-
-function recordAnsweredQuestions(name, count = 1) {
+async function recordAnsweredQuestions(name, count = 1) {
   const cleanName = String(name || "Player").trim().slice(0, 16) || "Player";
-  const key = cleanName.toLowerCase();
   
-  if (!globalLeaderboard[key]) {
-    globalLeaderboard[key] = { name: cleanName, questionsAnswered: 0 };
+  if (redis) {
+    // Increment player's score directly in Redis Sorted Set
+    await redis.zincrby("trig_leaderboard", count, cleanName);
+  } else {
+    const key = cleanName.toLowerCase();
+    if (!localLeaderboard[key]) localLeaderboard[key] = { name: cleanName, questionsAnswered: 0 };
+    localLeaderboard[key].questionsAnswered += count;
+    try { fs.writeFileSync(DB_FILE, JSON.stringify(localLeaderboard, null, 2)); } catch(e){}
   }
-  
-  globalLeaderboard[key].name = cleanName;
-  globalLeaderboard[key].questionsAnswered += count;
-  saveLeaderboard();
-  return getTopLeaderboard();
+  return await getTopLeaderboard();
 }
 
-function removePlayerFromLeaderboard(name) {
-  const key = String(name || "").trim().toLowerCase();
-  if (globalLeaderboard[key]) {
-    delete globalLeaderboard[key];
-    saveLeaderboard();
-    return true;
+async function removePlayerFromLeaderboard(name) {
+  const cleanName = String(name || "").trim();
+  if (redis) {
+    const removed = await redis.zrem("trig_leaderboard", cleanName);
+    return removed > 0;
+  } else {
+    const key = cleanName.toLowerCase();
+    if (localLeaderboard[key]) {
+      delete localLeaderboard[key];
+      try { fs.writeFileSync(DB_FILE, JSON.stringify(localLeaderboard, null, 2)); } catch(e){}
+      return true;
+    }
+    return false;
   }
-  return false;
 }
 
-function getTopLeaderboard(limit = 50) {
-  return Object.values(globalLeaderboard)
-    .sort((a, b) => b.questionsAnswered - a.questionsAnswered)
-    .slice(0, limit);
+async function getTopLeaderboard(limit = 50) {
+  if (redis) {
+    // Fetch top scores from Redis sorted set
+    const raw = await redis.zrevrange("trig_leaderboard", 0, limit - 1, "WITHSCORES");
+    const list = [];
+    for (let i = 0; i < raw.length; i += 2) {
+      list.push({ name: raw[i], questionsAnswered: parseInt(raw[i + 1], 10) });
+    }
+    return list;
+  } else {
+    return Object.values(localLeaderboard)
+      .sort((a, b) => b.questionsAnswered - a.questionsAnswered)
+      .slice(0, limit);
+  }
 }
 
 const app = express();
@@ -65,17 +71,17 @@ app.use(express.json());
 app.use(express.static(__dirname));
 
 // Public API endpoint
-app.get("/api/leaderboard", (_req, res) => {
-  res.json(getTopLeaderboard(50));
+app.get("/api/leaderboard", async (_req, res) => {
+  res.json(await getTopLeaderboard(50));
 });
 
 // Endpoint to record single/solo player questions
-app.post("/api/record-questions", (req, res) => {
+app.post("/api/record-questions", async (req, res) => {
   const { name, count } = req.body;
   if (!name || typeof count !== "number" || count <= 0) {
     return res.status(400).json({ error: "Invalid payload" });
   }
-  const updated = recordAnsweredQuestions(name, count);
+  const updated = await recordAnsweredQuestions(name, count);
   io.emit("globalLeaderboardUpdate", updated);
   res.json({ success: true });
 });
@@ -83,24 +89,20 @@ app.post("/api/record-questions", (req, res) => {
 // ADMIN API: Login check
 app.post("/api/admin/login", (req, res) => {
   const key = String(req.body?.key || "").trim();
-  if (key === ADMIN_KEY) {
-    return res.json({ success: true });
-  }
+  if (key === ADMIN_KEY) return res.json({ success: true });
   res.status(401).json({ error: "Invalid admin key" });
 });
 
 // ADMIN API: Remove player from leaderboard
-app.delete("/api/admin/leaderboard/:username", (req, res) => {
+app.delete("/api/admin/leaderboard/:username", async (req, res) => {
   const reqKey = String(req.headers["x-admin-key"] || "").trim();
-  if (reqKey !== ADMIN_KEY) {
-    return res.status(403).json({ error: "Unauthorized" });
-  }
+  if (reqKey !== ADMIN_KEY) return res.status(403).json({ error: "Unauthorized" });
 
   const { username } = req.params;
-  const removed = removePlayerFromLeaderboard(username);
+  const removed = await removePlayerFromLeaderboard(username);
 
   if (removed) {
-    const updated = getTopLeaderboard(50);
+    const updated = await getTopLeaderboard(50);
     io.emit("globalLeaderboardUpdate", updated);
     return res.json({ success: true, leaderboard: updated });
   }
@@ -191,7 +193,7 @@ function expireQuestion(lobby,index){
   broadcastLeaderboard(lobby);
   lobby.timer=setTimeout(()=>startQuestion(lobby),650);
 }
-function processAnswer(lobby,p,msg){
+async function processAnswer(lobby,p,msg){
   if(!lobby.gameStarted || !lobby.question || msg.questionIndex!==lobby.question.questionIndex) return;
   if(lobby.question.answers.has(p.id)) return;
   if(lobby.question.deadline && Date.now()>lobby.question.deadline) return;
@@ -201,7 +203,7 @@ function processAnswer(lobby,p,msg){
   const correct=msg.answer===lobby.question.value && msg.sign===lobby.question.sign;
   let points=0;
   if(correct){
-    const updatedGlobal = recordAnsweredQuestions(p.name, 1);
+    const updatedGlobal = await recordAnsweredQuestions(p.name, 1);
     io.emit("globalLeaderboardUpdate", updatedGlobal);
     p.streak++; p.bestStreak=Math.max(p.bestStreak,p.streak); points=100;
     if(lobby.settings.gameMode!=="practice"){
@@ -241,8 +243,8 @@ function disconnectPlayer(socket){
   }
 }
 
-io.on("connection",socket=>{
-  socket.emit("globalLeaderboardUpdate", getTopLeaderboard());
+io.on("connection", async socket=>{
+  socket.emit("globalLeaderboardUpdate", await getTopLeaderboard());
 
   socket.on("createLobby",({name,settings}={})=>{
     if(!validSettings(settings)) return socket.emit("error",{message:"Invalid multiplayer settings."});
