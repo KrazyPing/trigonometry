@@ -2,7 +2,7 @@
   "name": "trig-speed-challenge-web",
   "version": "1.0.0",
   "private": true,
-  "description": "Trig Speed Challenge website with online multiplayer",
+  "description": "Trig Speed Challenge website with online multiplayer and cloud leaderboard",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "express": "^5.1.0",
+    "ioredis": "^5.4.1",
     "socket.io": "^4.8.3"
   }
 }
