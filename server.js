@@ -7,9 +7,12 @@ const { Server } = require("socket.io");
 
 const PORT = Number(process.env.PORT || 3000);
 const app = express();
-app.use(express.static(path.join(__dirname, "public")));
-app.use((_req, res) => {
-  res.sendFile(path.join(__dirname, "public", "index.html"));
+app.get("/", (_req, res) => {
+  res.sendFile(path.join(__dirname, "index.html"));
+});
+
+app.get("/logo.png", (_req, res) => {
+  res.sendFile(path.join(__dirname, "logo.png"));
 });
 
 const httpServer = http.createServer(app);
